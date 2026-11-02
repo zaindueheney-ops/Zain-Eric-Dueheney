@@ -125,17 +125,23 @@ service cloud.firestore {
 
     function isValidOfficialAdvisory(data) {
       return data.keys().hasAll(['title', 'urgencyLevel', 'district', 'summary', 'publishedBy', 'publisherEmail', 'active']) &&
-        data.keys().hasOnly(['title', 'urgencyLevel', 'district', 'summary', 'fileUrl', 'fileType', 'fileName', 'publishedBy', 'publisherEmail', 'publishedAt', 'active']) &&
-        data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+        data.keys().hasOnly(['id', 'title', 'urgencyLevel', 'district', 'summary', 'affectedCommunities', 'safetyInstructions', 'issuingAuthority', 'expiresAt', 'publicationUrl', 'fileUrl', 'fileType', 'fileName', 'publishedBy', 'publisherEmail', 'publishedAt', 'active', 'channels']) &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 250 &&
         isValidAdvisoryUrgency(data.urgencyLevel) &&
         (data.district == 'all' || isValidBelizeDistrict(data.district)) &&
-        data.summary is string && data.summary.size() <= 3000 &&
-        data.publishedBy is string && data.publishedBy.size() <= 100 &&
-        data.publisherEmail is string && data.publisherEmail.size() <= 120 &&
+        data.summary is string && data.summary.size() <= 10000 &&
+        data.publishedBy is string && data.publishedBy.size() <= 150 &&
+        data.publisherEmail is string && data.publisherEmail.size() <= 150 &&
         data.active is bool &&
-        (!('fileUrl' in data) || (data.fileUrl is string && data.fileUrl.size() <= 900000)) &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+        (!('safetyInstructions' in data) || (data.safetyInstructions is string && data.safetyInstructions.size() <= 5000)) &&
+        (!('issuingAuthority' in data) || (data.issuingAuthority is string && data.issuingAuthority.size() <= 200)) &&
+        (!('expiresAt' in data) || (data.expiresAt is string && data.expiresAt.size() <= 60)) &&
+        (!('publicationUrl' in data) || (data.publicationUrl is string && data.publicationUrl.size() <= 2000)) &&
+        (!('fileUrl' in data) || (data.fileUrl is string && data.fileUrl.size() <= 10000000)) &&
         (!('fileType' in data) || (data.fileType in ['image', 'pdf'])) &&
-        (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 150));
+        (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 250)) &&
+        (!('affectedCommunities' in data) || data.affectedCommunities is list);
     }
 
     // --- Live Dispatch Chat Validation ---
@@ -245,7 +251,7 @@ service cloud.firestore {
 
     // 3. Official Advisories Collection (National Emergency Notices, PDF & Image Bulletins)
     match /advisories/{advisoryId} {
-      allow get, list: if isSignedIn();
+      allow read: if true;
       allow create, update: if isAdmin() && isValidId(advisoryId) && isValidOfficialAdvisory(incoming());
       allow delete: if isAdmin();
     }

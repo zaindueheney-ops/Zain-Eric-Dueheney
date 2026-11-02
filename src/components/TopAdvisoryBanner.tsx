@@ -76,6 +76,7 @@ export const TopAdvisoryBanner: React.FC = () => {
   const [newUrgency, setNewUrgency] = useState<AdvisoryUrgency>('warning');
   const [newDistrict, setNewDistrict] = useState<BelizeDistrict | 'all'>('all');
   const [newSummary, setNewSummary] = useState('');
+  const [newPublicationUrl, setNewPublicationUrl] = useState('');
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [uploadedFileType, setUploadedFileType] = useState<'image' | 'pdf' | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -164,6 +165,7 @@ export const TopAdvisoryBanner: React.FC = () => {
         urgencyLevel: newUrgency,
         district: newDistrict,
         summary: newSummary.trim() || 'Official Belize National Emergency Advisory bulletin published for public awareness and response coordination.',
+        publicationUrl: newPublicationUrl.trim() || undefined,
         fileUrl: uploadedFileUrl || undefined,
         fileType: uploadedFileType || undefined,
         fileName: uploadedFileName || undefined,
@@ -174,6 +176,7 @@ export const TopAdvisoryBanner: React.FC = () => {
       setNewUrgency('warning');
       setNewDistrict('all');
       setNewSummary('');
+      setNewPublicationUrl('');
       setUploadedFileUrl(null);
       setUploadedFileType(null);
       setUploadedFileName(null);
@@ -338,6 +341,21 @@ export const TopAdvisoryBanner: React.FC = () => {
             <p className="text-xs sm:text-sm text-slate-200 max-w-4xl line-clamp-2 md:line-clamp-3 leading-relaxed">
               {currentAdvisory.summary}
             </p>
+
+            {currentAdvisory.publicationUrl && (
+              <div className="pt-0.5">
+                <a
+                  href={currentAdvisory.publicationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#500717] hover:bg-[#6b0f24] text-[#f3c853] hover:text-white border border-[#d4af37]/40 text-xs font-bold transition shadow-sm"
+                  title="Open Official Publication Source"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span>Official Publication: {currentAdvisory.publicationUrl}</span>
+                </a>
+              </div>
+            )}
 
             {/* Quick Live Weather & Marine Snapshot Bar from nms.gov.bz */}
             <div className="pt-2 border-t border-[#841c34]/60 flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -606,6 +624,20 @@ export const TopAdvisoryBanner: React.FC = () => {
                   value={newSummary}
                   onChange={(e) => setNewSummary(e.target.value)}
                   placeholder="Detail expected hazards, safe evacuation routes, shelter openings, and emergency contact frequencies..."
+                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              {/* Publication Web Link */}
+              <div>
+                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  Official Publication / Web Link (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={newPublicationUrl}
+                  onChange={(e) => setNewPublicationUrl(e.target.value)}
+                  placeholder="e.g. https://nms.gov.bz/weather-forecast/ or official bulletin link"
                   className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>

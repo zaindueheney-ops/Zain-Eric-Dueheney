@@ -138,6 +138,7 @@ export interface OfficialAdvisory {
   safetyInstructions?: string;
   issuingAuthority?: string;
   expiresAt?: string;
+  publicationUrl?: string;
   fileUrl?: string; // base64 data URL of image or pdf
   fileType?: 'image' | 'pdf';
   fileName?: string;

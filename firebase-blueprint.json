@@ -227,10 +227,15 @@
       "description": "Official national emergency advisory, warning, or notice uploaded with image or PDF attachment.",
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the advisory.",
+          "maxLength": 128
+        },
         "title": {
           "type": "string",
           "description": "Advisory title or bulletin headline.",
-          "maxLength": 200
+          "maxLength": 250
         },
         "urgencyLevel": {
           "type": "string",
@@ -242,15 +247,40 @@
           "description": "Applicable Belize district or all nationwide.",
           "enum": ["all", "Belize", "Cayo", "Corozal", "Orange Walk", "Stann Creek", "Toledo"]
         },
+        "affectedCommunities": {
+          "type": "array",
+          "description": "Specific Belize communities affected.",
+          "items": { "type": "string" }
+        },
         "summary": {
           "type": "string",
           "description": "Advisory instructions and bulletin summary.",
-          "maxLength": 3000
+          "maxLength": 10000
+        },
+        "safetyInstructions": {
+          "type": "string",
+          "description": "Public safety protective actions and instructions.",
+          "maxLength": 5000
+        },
+        "issuingAuthority": {
+          "type": "string",
+          "description": "Authorizing agency or statutory official.",
+          "maxLength": 200
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Expiration timestamp."
+        },
+        "publicationUrl": {
+          "type": "string",
+          "description": "Link to official external publication or web advisory bulletin.",
+          "maxLength": 2000
         },
         "fileUrl": {
           "type": "string",
-          "description": "Base64 data URI of the advisory image or PDF file.",
-          "maxLength": 900000
+          "description": "Base64 data URI or storage link of the advisory image or PDF file.",
+          "maxLength": 10000000
         },
         "fileType": {
           "type": "string",
@@ -260,17 +290,17 @@
         "fileName": {
           "type": "string",
           "description": "Original file name of the document or image.",
-          "maxLength": 150
+          "maxLength": 250
         },
         "publishedBy": {
           "type": "string",
           "description": "Author name or publishing agency.",
-          "maxLength": 100
+          "maxLength": 150
         },
         "publisherEmail": {
           "type": "string",
           "description": "Publisher email address.",
-          "maxLength": 120
+          "maxLength": 150
         },
         "publishedAt": {
           "type": "string",
@@ -280,6 +310,10 @@
         "active": {
           "type": "boolean",
           "description": "Whether the advisory is currently active."
+        },
+        "channels": {
+          "type": "object",
+          "description": "Distribution channels status."
         }
       },
       "required": ["title", "urgencyLevel", "district", "summary", "publishedBy", "publisherEmail", "active"]
