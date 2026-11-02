@@ -301,6 +301,7 @@ export interface NationalEmergencyStatus {
 // --- Sidebar Menu Identifiers (15 operational modules) ---
 export type CommandViewTab =
   | 'command_dashboard'
+  | 'our_initiative'
   | 'national_map'
   | 'incident_management'
   | 'emergency_alerts'

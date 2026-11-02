@@ -10,7 +10,8 @@ import {
   User,
   ExternalLink,
   ChevronDown,
-  Bell
+  Bell,
+  Award
 } from 'lucide-react';
 import { useCommand } from '../context/CommandContext';
 import { useAuth, isAuthorizedAdminEmail } from '../context/AuthContext';
@@ -161,6 +162,17 @@ export const CommandTopBar: React.FC<CommandTopBarProps> = ({
 
         {/* Right: Actions, Incident CTA, Live Dispatch, Profile */}
         <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Our Initiative Button */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('our_initiative')}
+            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#141d2e] hover:bg-[#1e2c45] border border-[#273857] text-[#d4af37] text-xs font-bold transition shadow-sm"
+            title="Our Initiative • Zain Dueheney"
+          >
+            <Award className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span>Our Initiative</span>
+          </button>
+
           {/* Active / Critical Incidents Badge */}
           <button
             type="button"

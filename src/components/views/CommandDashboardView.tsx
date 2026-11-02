@@ -16,7 +16,9 @@ import {
   ChevronRight,
   Shield,
   Layers,
-  CloudRain
+  CloudRain,
+  Award,
+  GraduationCap
 } from 'lucide-react';
 import { useCommand } from '../../context/CommandContext';
 import { useAuth } from '../../context/AuthContext';
@@ -410,8 +412,55 @@ export const CommandDashboardView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column (4 cols): Evacuation Shelters & Recent Administrative Activity */}
+        {/* Right Column (4 cols): Our Initiative, Evacuation Shelters & Recent Administrative Activity */}
         <div className="lg:col-span-4 space-y-3">
+          {/* OUR INITIATIVE Showcase Card */}
+          <div className="bg-gradient-to-br from-[#121c2e] via-[#0c1424] to-[#070b14] p-4 rounded-2xl border-2 border-[#d4af37]/60 shadow-xl space-y-3 relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-[#d4af37]" />
+                <h3 className="font-black text-xs sm:text-sm text-white uppercase tracking-wider">
+                  OUR INITIATIVE
+                </h3>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-[#d4af37]/20 text-[#f3c853] text-[9px] font-black uppercase border border-[#d4af37]/40">
+                DRR Platform
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <img
+                src="/assets/aistudio/Screenshot_2026-11-02_at_08.22.00_6248165a.png"
+                alt="Zain Dueheney"
+                className="w-14 h-14 rounded-xl object-cover object-top border-2 border-[#d4af37]/70 shadow shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="font-black text-white text-xs truncate">Zain Dueheney</div>
+                <div className="text-[10px] text-[#f3c853] font-bold">Lecturer at Galen University</div>
+                <div className="text-[9px] text-slate-400 mt-0.5 truncate">
+                  PhD Cand. • InfoSec & Continuity
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              Belize Alerts is a technology-driven Disaster Risk Reduction (DRR) initiative designed to strengthen community resilience, early warning, and citizen response.
+            </p>
+
+            <div className="pt-1 flex items-center justify-between border-t border-[#1e2e4a]">
+              <span className="text-[10px] text-[#f3c853] font-bold italic">
+                Connecting Information to Action
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveTab('our_initiative')}
+                className="text-xs font-bold text-[#d4af37] hover:text-white flex items-center gap-1 group transition"
+              >
+                <span>Read Full</span>
+                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" />
+              </button>
+            </div>
+          </div>
 
           {/* Evacuation Shelters Status Summary */}
           <div className="bg-[#0c1424] p-3.5 rounded-2xl border border-[#233555] shadow-lg space-y-3">

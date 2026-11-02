@@ -19,7 +19,8 @@ import {
   ChevronRight,
   Shield,
   Activity,
-  AlertCircle
+  AlertCircle,
+  Award
 } from 'lucide-react';
 import { useCommand } from '../context/CommandContext';
 import { useAuth, isAuthorizedAdminEmail } from '../context/AuthContext';
@@ -80,6 +81,15 @@ export const CommandSidebar: React.FC = () => {
       label: 'Command Dashboard',
       shortLabel: 'Overview',
       icon: LayoutDashboard,
+      rolesAllowed: ['super_admin', 'national_admin', 'district_admin', 'dispatcher', 'school_admin', 'citizen'],
+    },
+    {
+      id: 'our_initiative',
+      label: 'Our Initiative',
+      shortLabel: 'Initiative',
+      icon: Award,
+      badge: 'DRR',
+      badgeColor: 'bg-[#d4af37] text-slate-950 font-black',
       rolesAllowed: ['super_admin', 'national_admin', 'district_admin', 'dispatcher', 'school_admin', 'citizen'],
     },
     {

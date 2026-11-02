@@ -10,6 +10,7 @@ import { CommandTopBar } from './components/CommandTopBar';
 
 // Views
 import { CommandDashboardView } from './components/views/CommandDashboardView';
+import { OurInitiativeView } from './components/views/OurInitiativeView';
 import { NationalIncidentMapView } from './components/views/NationalIncidentMapView';
 import { IncidentManagementView } from './components/views/IncidentManagementView';
 import { EmergencyAlertsView } from './components/views/EmergencyAlertsView';
@@ -51,6 +52,8 @@ function MainEmergencyCommandApp() {
     switch (activeTab) {
       case 'command_dashboard':
         return <CommandDashboardView />;
+      case 'our_initiative':
+        return <OurInitiativeView />;
       case 'national_map':
         return (
           <NationalIncidentMapView
