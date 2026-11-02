@@ -12,6 +12,7 @@ import { CommandTopBar } from './components/CommandTopBar';
 import { CommandDashboardView } from './components/views/CommandDashboardView';
 import { OurInitiativeView } from './components/views/OurInitiativeView';
 import { NationalIncidentMapView } from './components/views/NationalIncidentMapView';
+import { SatelliteFireMonitoringView } from './components/views/SatelliteFireMonitoringView';
 import { IncidentManagementView } from './components/views/IncidentManagementView';
 import { EmergencyAlertsView } from './components/views/EmergencyAlertsView';
 import { ResponseOperationsView } from './components/views/ResponseOperationsView';
@@ -64,6 +65,8 @@ function MainEmergencyCommandApp() {
             }}
           />
         );
+      case 'satellite_fire_monitoring':
+        return <SatelliteFireMonitoringView />;
       case 'incident_management':
         return <IncidentManagementView />;
       case 'emergency_alerts':

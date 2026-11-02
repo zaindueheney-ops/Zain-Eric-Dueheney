@@ -36,7 +36,7 @@ export const NationalIncidentMapView: React.FC<NationalIncidentMapViewProps> = (
     setFilters,
   } = useIncidents();
 
-  const { evacuationCentres, responseTeams } = useCommand();
+  const { evacuationCentres, responseTeams, setActiveTab } = useCommand();
 
   const [showSheltersLayer, setShowSheltersLayer] = useState(false);
   const [showTeamsLayer, setShowTeamsLayer] = useState(false);
@@ -85,6 +85,16 @@ export const NationalIncidentMapView: React.FC<NationalIncidentMapViewProps> = (
           >
             <Radio className="w-3.5 h-3.5 text-blue-400" />
             <span>Response Teams ({responseTeams.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('satellite_fire_monitoring')}
+            className="px-3 py-1.5 rounded-xl border border-orange-500/60 bg-gradient-to-r from-orange-950/80 to-[#1e1008] text-orange-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 shadow"
+            title="Open NASA FIRMS Satellite Fire Surveillance & Belize Fire Alerts"
+          >
+            <Flame className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
+            <span>NASA FIRMS Fires</span>
           </button>
         </div>
       </div>

@@ -20,7 +20,8 @@ import {
   Shield,
   Activity,
   AlertCircle,
-  Award
+  Award,
+  Flame
 } from 'lucide-react';
 import { useCommand } from '../context/CommandContext';
 import { useAuth, isAuthorizedAdminEmail } from '../context/AuthContext';
@@ -99,6 +100,15 @@ export const CommandSidebar: React.FC = () => {
       icon: MapPin,
       badge: activeIncidentsCount > 0 ? activeIncidentsCount : undefined,
       badgeColor: 'bg-red-600 text-white',
+      rolesAllowed: ['super_admin', 'national_admin', 'district_admin', 'dispatcher', 'school_admin', 'citizen'],
+    },
+    {
+      id: 'satellite_fire_monitoring',
+      label: 'Satellite Fire Monitoring',
+      shortLabel: 'FIRMS Fires',
+      icon: Flame,
+      badge: 'FIRMS',
+      badgeColor: 'bg-orange-500 text-slate-950 font-black',
       rolesAllowed: ['super_admin', 'national_admin', 'district_admin', 'dispatcher', 'school_admin', 'citizen'],
     },
     {

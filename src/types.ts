@@ -303,6 +303,7 @@ export type CommandViewTab =
   | 'command_dashboard'
   | 'our_initiative'
   | 'national_map'
+  | 'satellite_fire_monitoring'
   | 'incident_management'
   | 'emergency_alerts'
   | 'response_operations'
