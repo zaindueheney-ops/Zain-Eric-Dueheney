@@ -385,7 +385,6 @@ export type CommandViewTab =
   | 'school_safety'
   | 'evacuation_centres'
   | 'analytics_reports'
-  | 'notifications'
   | 'user_management'
   | 'administrator_management'
   | 'organization_management'

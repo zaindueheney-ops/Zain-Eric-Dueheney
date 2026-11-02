@@ -252,16 +252,6 @@ export const CommandTopBar: React.FC<CommandTopBarProps> = ({
             )}
           </button>
 
-          {/* Notification Management Centre / Alerts */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('notifications')}
-            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-[#131b2e] hover:bg-[#1d2a47] text-slate-300 hover:text-white border border-[#2a3b5c] text-xs font-bold transition shadow flex items-center gap-1.5"
-            title="Notification Management Centre & Alerts"
-          >
-            <Bell className="w-3.5 h-3.5 text-[#d4af37]" />
-            <span className="hidden xl:inline">Alerts</span>
-          </button>
 
           {/* User Auth Profile Dropdown */}
           {user ? (

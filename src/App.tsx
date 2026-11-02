@@ -20,7 +20,6 @@ import { CommunitySafetyView } from './components/views/CommunitySafetyView';
 import { SchoolSafetyView } from './components/views/SchoolSafetyView';
 import { EvacuationCentresView } from './components/views/EvacuationCentresView';
 import { AnalyticsReportsView } from './components/views/AnalyticsReportsView';
-import { NotificationsView } from './components/views/NotificationsView';
 import { UserManagementView } from './components/views/UserManagementView';
 import { AdministratorManagementView } from './components/views/AdministratorManagementView';
 import { OrganizationManagementView } from './components/views/OrganizationManagementView';
@@ -81,8 +80,6 @@ function MainEmergencyCommandApp() {
         return <EvacuationCentresView />;
       case 'analytics_reports':
         return <AnalyticsReportsView />;
-      case 'notifications':
-        return <NotificationsView />;
       case 'user_management':
         return <UserManagementView />;
       case 'administrator_management':

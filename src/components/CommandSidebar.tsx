@@ -167,13 +167,6 @@ export const CommandSidebar: React.FC = () => {
       rolesAllowed: ['super_admin', 'national_admin', 'district_admin'],
     },
     {
-      id: 'notifications',
-      label: 'Notification Management Centre',
-      shortLabel: 'Notifications',
-      icon: Bell,
-      rolesAllowed: ['super_admin', 'national_admin', 'district_admin', 'dispatcher', 'school_admin', 'citizen'],
-    },
-    {
       id: 'user_management',
       label: 'User Management',
       shortLabel: 'Users',
