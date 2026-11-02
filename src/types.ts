@@ -298,6 +298,80 @@ export interface NationalEmergencyStatus {
   bulletinSummary: string;
 }
 
+// --- Central Notification Management Centre Types ---
+export type NotificationCategory =
+  | 'Flood Warning'
+  | 'Tropical Storm and Hurricane'
+  | 'Fire Emergency'
+  | 'Road Closure'
+  | 'Public Safety Advisory'
+  | 'Community Notice'
+  | 'School Safety Alert'
+  | 'General Announcement';
+
+export type NotificationPriority = 'Critical' | 'High' | 'Moderate' | 'Informational';
+
+export type NotificationDeliveryChannel = 'push' | 'email' | 'sms';
+
+export type NotificationStatus =
+  | 'draft'
+  | 'pending_approval'
+  | 'approved'
+  | 'scheduled'
+  | 'sent'
+  | 'cancelled';
+
+export interface NotificationDeliveryReport {
+  intendedRecipients: number;
+  pushAttempts: number;
+  pushDelivered: number;
+  emailAttempts: number;
+  emailAccepted: number;
+  smsAttempts: number;
+  smsAccepted: number;
+  failedCount: number;
+  acknowledgedCount: number;
+  completedAt?: string;
+}
+
+export interface CentralNotification {
+  id: string;
+  title: string;
+  message: string;
+  category: NotificationCategory;
+  priority: NotificationPriority;
+  district: BelizeDistrict | 'all';
+  communities: string[];
+  targetAudience: string;
+  channels: NotificationDeliveryChannel[];
+  publicationDate: string;
+  expirationDate?: string;
+  linkUrl?: string;
+  status: NotificationStatus;
+  isTest: boolean;
+  creatorId: string;
+  creatorName: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  deliveryReport?: NotificationDeliveryReport;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriberPreferences {
+  userId: string;
+  email: string;
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+  phone?: string;
+  district: BelizeDistrict | 'all';
+  communities: string[];
+  subscribedCategories: NotificationCategory[];
+  consentGivenAt: string;
+  updatedAt: string;
+}
+
 // --- Sidebar Menu Identifiers (15 operational modules) ---
 export type CommandViewTab =
   | 'command_dashboard'

@@ -168,8 +168,8 @@ export const CommandSidebar: React.FC = () => {
     },
     {
       id: 'notifications',
-      label: 'Notifications',
-      shortLabel: 'Notices',
+      label: 'Notification Management Centre',
+      shortLabel: 'Notifications',
       icon: Bell,
       rolesAllowed: ['super_admin', 'national_admin', 'district_admin', 'dispatcher', 'school_admin', 'citizen'],
     },

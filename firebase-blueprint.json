@@ -369,6 +369,135 @@
         }
       },
       "required": ["conversationId", "senderId", "senderName", "senderRole", "message"]
+    },
+    "CentralNotification": {
+      "title": "CentralNotification",
+      "description": "Multi-channel broadcast emergency notification or public safety alert in Belize Alerts.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Flood Warning",
+            "Tropical Storm and Hurricane",
+            "Fire Emergency",
+            "Road Closure",
+            "Public Safety Advisory",
+            "Community Notice",
+            "School Safety Alert",
+            "General Announcement"
+          ]
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["Critical", "High", "Moderate", "Informational"]
+        },
+        "district": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "communities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "targetAudience": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "channels": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "pending_approval", "scheduled", "sent", "cancelled"]
+        },
+        "isTest": {
+          "type": "boolean"
+        },
+        "creatorId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "creatorName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "approvedBy": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "publishedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "linkUrl": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": ["title", "message", "category", "priority", "district", "channels", "status"]
+    },
+    "SubscriberPreferences": {
+      "title": "SubscriberPreferences",
+      "description": "Granular user notification subscription preferences and consent record.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "pushEnabled": {
+          "type": "boolean"
+        },
+        "emailEnabled": {
+          "type": "boolean"
+        },
+        "smsEnabled": {
+          "type": "boolean"
+        },
+        "district": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "communities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "subscribedCategories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "consentGivenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "pushEnabled", "emailEnabled", "district"]
     }
   },
   "firestore": {
@@ -395,6 +524,14 @@
     "/conversations/{conversationId}/messages/{messageId}": {
       "schema": "DispatchMessage",
       "description": "Real-time messages sent in the conversation."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "CentralNotification",
+      "description": "Official multi-channel emergency notifications dispatched by the EOC."
+    },
+    "/subscribers/{userId}": {
+      "schema": "SubscriberPreferences",
+      "description": "Emergency alert subscription preferences and consent status."
     },
     "/response_teams/{teamId}": {
       "description": "Registered first responder strike forces and emergency crews."

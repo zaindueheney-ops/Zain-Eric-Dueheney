@@ -308,6 +308,17 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+
+    // Official Notifications Dispatched by EOC
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Subscriber Notification Preferences
+    match /subscribers/{userId} {
+      allow read, write: if isSignedIn() && (isOwner(userId) || isAdmin());
+    }
   }
 }
 
