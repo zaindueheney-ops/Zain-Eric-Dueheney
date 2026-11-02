@@ -25,12 +25,17 @@ import {
   CheckCircle2,
   Crosshair,
   Building2,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff,
+  Filter
 } from 'lucide-react';
 import { useIncidents } from '../../context/IncidentContext';
 import { useCommand } from '../../context/CommandContext';
 import { BelizeDistrict, EmergencyIncident } from '../../types';
 import { BELIZE_DISTRICTS } from '../../data/belizeGeo';
+import { FireLayers } from '../FireLayers';
+import { FirmsHotspot, BELIZE_FIRMS_BBOX } from '../../services/firmsService';
 
 const GOOGLE_MAPS_API_KEY =
   (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY ||
@@ -38,124 +43,6 @@ const GOOGLE_MAPS_API_KEY =
 
 // NASA FIRMS exact URL requested by the user
 const NASA_FIRMS_OFFICIAL_URL = 'https://firms.modaps.eosdis.nasa.gov/map/#d:24hrs;@-87.0,17.7,7.9z';
-
-// Satellite Thermal Anomaly Hotspot
-interface SatelliteThermalHotspot {
-  id: string;
-  name: string;
-  district: BelizeDistrict;
-  lat: number;
-  lng: number;
-  satellite: 'VIIRS (NOAA-20)' | 'VIIRS (Suomi-NPP)' | 'MODIS (Terra)' | 'MODIS (Aqua)';
-  confidence: 'High' | 'Nominal' | 'Low';
-  brightnessKelvin: number;
-  fireRadiativePowerMW: number;
-  acqDate: string;
-  acqTime: string;
-  fireType: 'Agricultural Burn' | 'Wildland / Forest' | 'Bush / Savanna' | 'Industrial / Landfill';
-  summary: string;
-  nearestTown: string;
-}
-
-// Verified Satellite Thermal Detections across Belize
-const BELIZE_THERMAL_HOTSPOTS: SatelliteThermalHotspot[] = [
-  {
-    id: 'firms_cayo_mpr',
-    name: 'Mountain Pine Ridge Forest Hotspot Alert',
-    district: 'Cayo',
-    lat: 16.985,
-    lng: -88.945,
-    satellite: 'VIIRS (NOAA-20)',
-    confidence: 'High',
-    brightnessKelvin: 338.4,
-    fireRadiativePowerMW: 18.6,
-    acqDate: '2026-11-02',
-    acqTime: '13:42 UTC',
-    fireType: 'Wildland / Forest',
-    summary: 'Thermal cluster detected along southern boundary of Mountain Pine Ridge Reserve near Privassion Creek.',
-    nearestTown: 'San Antonio / Douglas D’Silva Forest Station'
-  },
-  {
-    id: 'firms_ow_sugar',
-    name: 'Orange Walk Sugar Belt Agricultural Fire',
-    district: 'Orange Walk',
-    lat: 18.065,
-    lng: -88.62,
-    satellite: 'VIIRS (Suomi-NPP)',
-    confidence: 'High',
-    brightnessKelvin: 345.1,
-    fireRadiativePowerMW: 26.2,
-    acqDate: '2026-11-02',
-    acqTime: '08:15 UTC',
-    fireType: 'Agricultural Burn',
-    summary: 'Active sugarcane agricultural burn detected with high brightness anomaly near San Estevan.',
-    nearestTown: 'Orange Walk Town / San Estevan'
-  },
-  {
-    id: 'firms_corozal_patch',
-    name: 'Corozal South Agricultural Clearing',
-    district: 'Corozal',
-    lat: 18.28,
-    lng: -88.42,
-    satellite: 'MODIS (Aqua)',
-    confidence: 'Nominal',
-    brightnessKelvin: 326.8,
-    fireRadiativePowerMW: 12.4,
-    acqDate: '2026-11-02',
-    acqTime: '05:30 UTC',
-    fireType: 'Agricultural Burn',
-    summary: 'Low-intensity biomass clearing in agricultural parcel south of Corozal Town.',
-    nearestTown: 'Corozal Town / San Joaquin'
-  },
-  {
-    id: 'firms_toledo_milpa',
-    name: 'Toledo Deep South Milpa Fire Watch',
-    district: 'Toledo',
-    lat: 16.18,
-    lng: -88.98,
-    satellite: 'VIIRS (NOAA-20)',
-    confidence: 'Nominal',
-    brightnessKelvin: 331.2,
-    fireRadiativePowerMW: 14.8,
-    acqDate: '2026-11-02',
-    acqTime: '11:10 UTC',
-    fireType: 'Bush / Savanna',
-    summary: 'Seasonal traditional milpa agricultural preparation burn detected in southern Toledo hill slopes.',
-    nearestTown: 'Punta Gorda / San Antonio Village'
-  },
-  {
-    id: 'firms_belize_savanna',
-    name: 'Belize Western Highway Savanna Fire',
-    district: 'Belize',
-    lat: 17.39,
-    lng: -88.54,
-    satellite: 'MODIS (Terra)',
-    confidence: 'High',
-    brightnessKelvin: 341.0,
-    fireRadiativePowerMW: 21.5,
-    acqDate: '2026-11-02',
-    acqTime: '09:20 UTC',
-    fireType: 'Bush / Savanna',
-    summary: 'Pine savanna brush fire near Mile 31 George Price Highway, causing localized highway smoke haze.',
-    nearestTown: 'Mahogany Heights / Hattieville'
-  },
-  {
-    id: 'firms_stann_creek_citrus',
-    name: 'Stann Creek Valley Agricultural Burn',
-    district: 'Stann Creek',
-    lat: 17.02,
-    lng: -88.38,
-    satellite: 'VIIRS (Suomi-NPP)',
-    confidence: 'Nominal',
-    brightnessKelvin: 329.5,
-    fireRadiativePowerMW: 11.0,
-    acqDate: '2026-11-02',
-    acqTime: '07:45 UTC',
-    fireType: 'Agricultural Burn',
-    summary: 'Citrus orchard pruning and vegetation management burn along Hummingbird Highway.',
-    nearestTown: 'Pomona / Dangriga'
-  }
-];
 
 // Helper camera controller
 function MapCameraHandler({
@@ -178,17 +65,25 @@ export const SatelliteFireMonitoringView: React.FC = () => {
   const { incidents } = useIncidents();
   const { setActiveTab } = useCommand();
 
-  // Selected fire detection hotspot on map
-  const [selectedHotspot, setSelectedHotspot] = useState<SatelliteThermalHotspot | null>(null);
+  // Dynamic FIRMS active hotspots loaded by FireLayers
+  const [liveHotspots, setLiveHotspots] = useState<FirmsHotspot[]>([]);
+  const [selectedHotspotId, setSelectedHotspotId] = useState<string | null>(null);
   const [selectedIncidentFire, setSelectedIncidentFire] = useState<EmergencyIncident | null>(null);
 
-  // Timeframe filter (24hrs default matching NASA FIRMS #d:24hrs)
-  const [timeframe, setTimeframe] = useState<'24hrs' | '48hrs' | '7days'>('24hrs');
+  // Dynamic Layer Controls
+  const [layerVisible, setLayerVisible] = useState<boolean>(true);
+  const [confidenceFilter, setConfidenceFilter] = useState<'all' | 'high_nominal' | 'high'>('all');
+  const [sensorFilter, setSensorFilter] = useState<'all' | 'VIIRS' | 'MODIS'>('all');
   const [districtFilter, setDistrictFilter] = useState<BelizeDistrict | 'all'>('all');
   const [fireTypeFilter, setFireTypeFilter] = useState<'all' | 'agricultural' | 'wildland' | 'reported'>('all');
 
+  const [dataSource, setDataSource] = useState<'live_nrt' | 'cached_nrt'>('live_nrt');
+  const [lastUpdated, setLastUpdated] = useState<string>('');
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
   // Map camera state focused on the Belize area coordinates
-  // User specified: -87.0, 17.7, 7.9z (we center comfortably on Belize mainland at 17.2, -88.5 with zoom 8)
+  // Default coordinates: @-87.0, 17.7, 7.9z (centered on mainland at 17.25, -88.45)
   const [cameraCenter, setCameraCenter] = useState<{ lat: number; lng: number }>({
     lat: 17.25,
     lng: -88.45
@@ -201,18 +96,31 @@ export const SatelliteFireMonitoringView: React.FC = () => {
   );
 
   // Focus map on a specific coordinate
-  const handleFocusLocation = (lat: number, lng: number, zoomLevel = 12) => {
+  const handleFocusLocation = (lat: number, lng: number, zoomLevel = 12, hotspotId?: string) => {
     setCameraCenter({ lat, lng });
     setCameraZoom(zoomLevel);
+    if (hotspotId) {
+      setSelectedHotspotId(hotspotId);
+      setSelectedIncidentFire(null);
+    }
     // Scroll smoothly to map on mobile
     window.scrollTo({ top: 120, behavior: 'smooth' });
   };
 
-  // Filtered hotspots
-  const filteredHotspots = BELIZE_THERMAL_HOTSPOTS.filter((h) => {
+  const handleRefreshData = () => {
+    setIsRefreshing(true);
+    setRefreshTrigger((prev) => prev + 1);
+    setTimeout(() => setIsRefreshing(false), 900);
+  };
+
+  // Filtered hotspots for list below map
+  const displayedListHotspots = liveHotspots.filter((h) => {
     if (districtFilter !== 'all' && h.district !== districtFilter) return false;
-    if (fireTypeFilter === 'agricultural' && h.fireType !== 'Agricultural Burn') return false;
-    if (fireTypeFilter === 'wildland' && (h.fireType !== 'Wildland / Forest' && h.fireType !== 'Bush / Savanna')) return false;
+    if (sensorFilter !== 'all' && h.sensor !== sensorFilter) return false;
+    if (confidenceFilter === 'high' && h.confidence !== 'high') return false;
+    if (confidenceFilter === 'high_nominal' && h.confidence === 'low') return false;
+    if (fireTypeFilter === 'agricultural' && h.estimatedType !== 'Agricultural Burn') return false;
+    if (fireTypeFilter === 'wildland' && (h.estimatedType !== 'Wildland / Forest' && h.estimatedType !== 'Bush / Savanna')) return false;
     if (fireTypeFilter === 'reported') return false;
     return true;
   });
@@ -239,21 +147,23 @@ export const SatelliteFireMonitoringView: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-300 mt-1 max-w-3xl leading-relaxed">
-              Real-time thermal anomalies and active fire hotspots detected by NASA MODIS & VIIRS satellite sensors across Belize. Integrated directly with local fire response coordination and early warning alerts.
+              Real-time thermal anomalies and active wildfire hotspots detected by NASA MODIS & VIIRS satellite sensors across Belize. Dynamic layer fetched via the NASA FIRMS API for the Belize Bounding Box.
             </p>
 
             <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px]">
-              <span className="text-slate-400">Target Coordinates:</span>
+              <span className="text-slate-400">Belize Bounding Box:</span>
               <code className="px-2 py-0.5 rounded bg-black/60 text-[#f3c853] font-mono border border-slate-700">
-                @-87.0, 17.7 (Zoom: 7.9z)
+                [{BELIZE_FIRMS_BBOX.west}°W, {BELIZE_FIRMS_BBOX.south}°N] to [{BELIZE_FIRMS_BBOX.east}°W, {BELIZE_FIRMS_BBOX.north}°N]
               </code>
-              <span className="text-slate-400">• Timeframe:</span>
-              <span className="font-bold text-emerald-400">Past 24 Hours Near Real-Time</span>
+              <span className="text-slate-400">• Center Target:</span>
+              <code className="px-1.5 py-0.5 rounded bg-black/60 text-orange-300 font-mono border border-slate-700">
+                @-87.0, 17.7 (7.9z)
+              </code>
             </div>
           </div>
         </div>
 
-        {/* Action Button: Direct Link to NASA FIRMS Map */}
+        {/* Action Buttons */}
         <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
           <a
             href={NASA_FIRMS_OFFICIAL_URL}
@@ -279,85 +189,94 @@ export const SatelliteFireMonitoringView: React.FC = () => {
         </div>
       </div>
 
-      {/* Interactive Map Filter & Metric Bar */}
+      {/* Dynamic Layer Status Bar & Filter Controls */}
       <div className="bg-[#0b1220] p-3 rounded-2xl border border-[#1e2e4a] flex flex-wrap items-center justify-between gap-3 text-xs shadow-md">
-        {/* District Quick Jumps */}
+        {/* Layer Toggle & Telemetry Count */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-slate-400 font-bold flex items-center gap-1 text-[11px]">
-            <MapPin className="w-3.5 h-3.5 text-red-400" />
-            <span>Quick District Focus:</span>
-          </span>
-
           <button
             type="button"
-            onClick={() => handleFocusLocation(18.065, -88.62, 10)}
-            className="px-2.5 py-1 rounded-lg bg-[#141e30] hover:bg-orange-950 hover:text-orange-300 hover:border-orange-500/50 text-slate-200 border border-[#233555] transition text-[11px] font-semibold"
+            onClick={() => setLayerVisible(!layerVisible)}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow ${
+              layerVisible
+                ? 'bg-orange-600 text-white border-orange-400'
+                : 'bg-[#141e30] text-slate-400 border-[#233555] hover:text-white'
+            }`}
+            title="Toggle NASA FIRMS Thermal Layer visibility"
           >
-            Orange Walk (Sugar Belt)
+            {layerVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            <span>FIRMS Layer: {layerVisible ? 'Active' : 'Hidden'}</span>
           </button>
 
           <button
             type="button"
-            onClick={() => handleFocusLocation(16.985, -88.945, 10)}
-            className="px-2.5 py-1 rounded-lg bg-[#141e30] hover:bg-orange-950 hover:text-orange-300 hover:border-orange-500/50 text-slate-200 border border-[#233555] transition text-[11px] font-semibold"
+            onClick={handleRefreshData}
+            disabled={isRefreshing}
+            className="px-2.5 py-1.5 rounded-xl bg-[#141e30] hover:bg-[#1f2b45] text-slate-200 border border-[#233555] transition flex items-center gap-1.5 font-bold"
+            title="Re-query latest NASA FIRMS satellite pass"
           >
-            Cayo (Mountain Pine Ridge)
+            <RefreshCw className={`w-3.5 h-3.5 text-orange-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh Feed</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => handleFocusLocation(18.28, -88.42, 10)}
-            className="px-2.5 py-1 rounded-lg bg-[#141e30] hover:bg-orange-950 hover:text-orange-300 hover:border-orange-500/50 text-slate-200 border border-[#233555] transition text-[11px] font-semibold"
-          >
-            Corozal Bay & North
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleFocusLocation(16.18, -88.98, 10)}
-            className="px-2.5 py-1 rounded-lg bg-[#141e30] hover:bg-orange-950 hover:text-orange-300 hover:border-orange-500/50 text-slate-200 border border-[#233555] transition text-[11px] font-semibold"
-          >
-            Toledo Rural South
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleFocusLocation(17.39, -88.54, 10)}
-            className="px-2.5 py-1 rounded-lg bg-[#141e30] hover:bg-orange-950 hover:text-orange-300 hover:border-orange-500/50 text-slate-200 border border-[#233555] transition text-[11px] font-semibold"
-          >
-            Belize Savanna Belt
-          </button>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#080e1a] border border-[#1e293b] text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Detected:</span>
+            <strong className="text-white font-mono">{liveHotspots.length} Hotspots</strong>
+            {lastUpdated && (
+              <span className="text-[10px] text-slate-400 hidden sm:inline">
+                • Updated {lastUpdated}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Filter by Category */}
-        <div className="flex items-center gap-2">
+        {/* Dynamic Layer Filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Sensor Selector */}
+          <div className="flex items-center gap-1">
+            <span className="text-slate-400 text-[11px] hidden sm:inline">Sensor:</span>
+            <select
+              value={sensorFilter}
+              onChange={(e) => setSensorFilter(e.target.value as any)}
+              className="bg-[#121c2e] border border-[#233555] rounded-xl px-2 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
+            >
+              <option value="all">All Sensors (VIIRS + MODIS)</option>
+              <option value="VIIRS">VIIRS Only (375m High-Res)</option>
+              <option value="MODIS">MODIS Only (1km)</option>
+            </select>
+          </div>
+
+          {/* Confidence Selector */}
+          <div className="flex items-center gap-1">
+            <span className="text-slate-400 text-[11px] hidden sm:inline">Confidence:</span>
+            <select
+              value={confidenceFilter}
+              onChange={(e) => setConfidenceFilter(e.target.value as any)}
+              className="bg-[#121c2e] border border-[#233555] rounded-xl px-2 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
+            >
+              <option value="all">All Confidences</option>
+              <option value="high_nominal">High & Nominal</option>
+              <option value="high">High Confidence Only</option>
+            </select>
+          </div>
+
+          {/* District Selector */}
           <select
             value={districtFilter}
             onChange={(e) => setDistrictFilter(e.target.value as any)}
             className="bg-[#121c2e] border border-[#233555] rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
           >
-            <option value="all">All Districts</option>
+            <option value="all">All Belize Districts</option>
             {BELIZE_DISTRICTS.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
               </option>
             ))}
           </select>
-
-          <select
-            value={fireTypeFilter}
-            onChange={(e) => setFireTypeFilter(e.target.value as any)}
-            className="bg-[#121c2e] border border-[#233555] rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none focus:border-orange-500"
-          >
-            <option value="all">All Fire Types</option>
-            <option value="agricultural">Agricultural Burns</option>
-            <option value="wildland">Wildland / Forest Fires</option>
-            <option value="reported">Civil Incident Reports ({reportedFireIncidents.length})</option>
-          </select>
         </div>
       </div>
 
-      {/* SECTION 1: INTERACTIVE MAP OF BELIZE SATELLITE FIRE SURVEILLANCE */}
+      {/* SECTION 1: INTERACTIVE MAP WITH DYNAMIC FIRE LAYERS */}
       <div className="relative rounded-3xl overflow-hidden border-2 border-[#1e2e4a] shadow-2xl bg-[#090f1a] h-[520px]">
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <Map
@@ -371,24 +290,25 @@ export const SatelliteFireMonitoringView: React.FC = () => {
           >
             <MapCameraHandler targetCoords={cameraCenter} zoom={cameraZoom} />
 
-            {/* Render Satellite Hotspots */}
-            {filteredHotspots.map((hotspot) => (
-              <AdvancedMarker
-                key={hotspot.id}
-                position={{ lat: hotspot.lat, lng: hotspot.lng }}
-                onClick={() => {
-                  setSelectedHotspot(hotspot);
-                  setSelectedIncidentFire(null);
-                }}
-              >
-                <div className="relative cursor-pointer group">
-                  <div className="absolute -inset-2 bg-orange-500/40 rounded-full animate-ping pointer-events-none" />
-                  <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-red-600 via-orange-500 to-amber-500 border-2 border-white text-white flex items-center justify-center shadow-lg group-hover:scale-125 transition duration-200">
-                    <Flame className="w-4 h-4 fill-white" />
-                  </div>
-                </div>
-              </AdvancedMarker>
-            ))}
+            {/* DYNAMIC NASA FIRMS WILDFIRE LAYER */}
+            <FireLayers
+              visible={layerVisible}
+              selectedHotspotId={selectedHotspotId}
+              onSelectHotspot={(hotspot) => {
+                setSelectedHotspotId(hotspot?.id || null);
+                setSelectedIncidentFire(null);
+              }}
+              onHotspotsLoaded={(loaded, source, updatedTime) => {
+                setLiveHotspots(loaded);
+                setDataSource(source);
+                setLastUpdated(updatedTime);
+              }}
+              confidenceFilter={confidenceFilter}
+              sensorFilter={sensorFilter}
+              districtFilter={districtFilter}
+              fireTypeFilter={fireTypeFilter}
+              refreshTrigger={refreshTrigger}
+            />
 
             {/* Render Verified Civil Fire Incident Reports */}
             {reportedFireIncidents.map((incident) => (
@@ -397,7 +317,7 @@ export const SatelliteFireMonitoringView: React.FC = () => {
                 position={{ lat: incident.latitude, lng: incident.longitude }}
                 onClick={() => {
                   setSelectedIncidentFire(incident);
-                  setSelectedHotspot(null);
+                  setSelectedHotspotId(null);
                 }}
               >
                 <div className="relative cursor-pointer group">
@@ -407,56 +327,6 @@ export const SatelliteFireMonitoringView: React.FC = () => {
                 </div>
               </AdvancedMarker>
             ))}
-
-            {/* InfoWindow for Satellite Hotspot */}
-            {selectedHotspot && (
-              <InfoWindow
-                position={{ lat: selectedHotspot.lat, lng: selectedHotspot.lng }}
-                onCloseClick={() => setSelectedHotspot(null)}
-              >
-                <div className="text-slate-900 p-1.5 max-w-xs text-xs font-sans space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-black text-red-700 text-xs">
-                    <Flame className="w-4 h-4 text-orange-600" />
-                    <span>{selectedHotspot.name}</span>
-                  </div>
-
-                  <p className="text-[11px] text-slate-700 font-normal">
-                    {selectedHotspot.summary}
-                  </p>
-
-                  <div className="bg-slate-100 p-2 rounded-lg text-[10px] space-y-1 font-mono">
-                    <div>
-                      <strong>Sensor:</strong> {selectedHotspot.satellite}
-                    </div>
-                    <div>
-                      <strong>Confidence:</strong>{' '}
-                      <span className="text-red-700 font-bold">{selectedHotspot.confidence}</span>
-                    </div>
-                    <div>
-                      <strong>Brightness:</strong> {selectedHotspot.brightnessKelvin} K ({selectedHotspot.fireRadiativePowerMW} MW FRP)
-                    </div>
-                    <div>
-                      <strong>Acquired:</strong> {selectedHotspot.acqDate} at {selectedHotspot.acqTime}
-                    </div>
-                    <div>
-                      <strong>Nearest Town:</strong> {selectedHotspot.nearestTown}
-                    </div>
-                  </div>
-
-                  <div className="pt-1 flex items-center justify-between">
-                    <a
-                      href={NASA_FIRMS_OFFICIAL_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-orange-700 font-bold hover:underline flex items-center gap-1 text-[11px]"
-                    >
-                      <span>Verify on FIRMS</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                </div>
-              </InfoWindow>
-            )}
 
             {/* InfoWindow for Reported Civil Fire Incident */}
             {selectedIncidentFire && (
@@ -490,20 +360,26 @@ export const SatelliteFireMonitoringView: React.FC = () => {
         {/* Overlay Badge in Top Left */}
         <div className="absolute top-3 left-3 bg-black/85 backdrop-blur-md px-3 py-2 rounded-2xl border border-orange-500/40 text-xs shadow-xl flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-orange-500 animate-ping" />
-          <span className="font-bold text-white">Live Satellite Thermal Detection Feed</span>
-          <span className="text-slate-400 font-mono text-[10px]">VIIRS / MODIS</span>
+          <span className="font-bold text-white">NASA FIRMS Dynamic Layer</span>
+          <span className="text-slate-400 font-mono text-[10px]">
+            {liveHotspots.length} Hotspots • {dataSource === 'live_nrt' ? 'Live NRT' : 'Near Real-Time'}
+          </span>
         </div>
 
         {/* Legend in Bottom Left */}
         <div className="absolute bottom-3 left-3 bg-black/90 backdrop-blur-md p-2.5 rounded-2xl border border-[#233555] text-[11px] shadow-xl space-y-1 hidden sm:block">
-          <div className="font-bold text-slate-300 text-[10px] uppercase">Map Legend</div>
+          <div className="font-bold text-slate-300 text-[10px] uppercase">Fire Layers Legend</div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-orange-500 border border-white" />
-            <span className="text-slate-200">NASA FIRMS Thermal Hotspot</span>
+            <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-red-600 to-orange-500 border border-white" />
+            <span className="text-slate-200">High FRP (&gt;15 MW) / Intense Heat Core</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-orange-500 border border-white/80" />
+            <span className="text-slate-200">Moderate FIRMS Thermal Hotspot</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded bg-red-600 border border-yellow-300" />
-            <span className="text-slate-200">Citizen / BNFS Fire Report</span>
+            <span className="text-slate-200">Citizen / BNFS Reported Fire</span>
           </div>
         </div>
       </div>
@@ -516,7 +392,7 @@ export const SatelliteFireMonitoringView: React.FC = () => {
               <Flame className="w-5 h-5 text-orange-500" />
               <span>Belize Fire Alerts & Hotspot Surveillance Network</span>
               <span className="px-2 py-0.5 rounded-full bg-orange-950 text-orange-300 border border-orange-500/40 text-[10px] font-mono">
-                {filteredHotspots.length + reportedFireIncidents.length} Active Alerts
+                {displayedListHotspots.length + reportedFireIncidents.length} Active Alerts
               </span>
             </h2>
             <p className="text-[11px] text-slate-400">
@@ -579,75 +455,77 @@ export const SatelliteFireMonitoringView: React.FC = () => {
             </div>
           ))}
 
-          {/* NASA Satellite Thermal Detections */}
-          {filteredHotspots.map((hotspot) => (
-            <div
-              key={hotspot.id}
-              onClick={() => handleFocusLocation(hotspot.lat, hotspot.lng, 12)}
-              className="bg-[#0b1220] rounded-2xl border border-[#1e2e4a] hover:border-orange-500/70 p-4 shadow-lg cursor-pointer transition group flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                        hotspot.fireType === 'Wildland / Forest'
-                          ? 'bg-red-950 text-red-300 border-red-500/40'
-                          : hotspot.fireType === 'Agricultural Burn'
-                          ? 'bg-amber-950 text-yellow-300 border-amber-500/40'
-                          : 'bg-orange-950 text-orange-300 border-orange-500/40'
-                      }`}
-                    >
-                      {hotspot.fireType}
-                    </span>
+          {/* NASA Satellite Thermal Detections from Dynamic FireLayers */}
+          {displayedListHotspots.map((hotspot) => {
+            const isSelected = selectedHotspotId === hotspot.id;
 
-                    <h3 className="font-bold text-white text-sm mt-1.5 group-hover:text-orange-300 transition leading-snug">
-                      {hotspot.name}
-                    </h3>
+            return (
+              <div
+                key={hotspot.id}
+                onClick={() => handleFocusLocation(hotspot.latitude, hotspot.longitude, 12, hotspot.id)}
+                className={`bg-[#0b1220] rounded-2xl border ${
+                  isSelected ? 'border-orange-400 shadow-orange-950/50 ring-2 ring-orange-500/50' : 'border-[#1e2e4a] hover:border-orange-500/70'
+                } p-4 shadow-lg cursor-pointer transition group flex flex-col justify-between`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                          hotspot.estimatedType === 'Wildland / Forest'
+                            ? 'bg-red-950 text-red-300 border-red-500/40'
+                            : hotspot.estimatedType === 'Agricultural Burn'
+                            ? 'bg-amber-950 text-yellow-300 border-amber-500/40'
+                            : 'bg-orange-950 text-orange-300 border-orange-500/40'
+                        }`}
+                      >
+                        {hotspot.estimatedType}
+                      </span>
 
-                    <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3 h-3 text-red-400 shrink-0" />
-                      <span>{hotspot.district} District • {hotspot.nearestTown}</span>
-                    </p>
+                      <h3 className="font-bold text-white text-sm mt-1.5 group-hover:text-orange-300 transition leading-snug">
+                        {hotspot.nearestLocation}
+                      </h3>
+
+                      <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3 text-red-400 shrink-0" />
+                        <span>{hotspot.district} District • {hotspot.daynight} Detection</span>
+                      </p>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-[#141e30] text-orange-400 border border-[#233555] group-hover:scale-110 group-hover:border-orange-500/50 transition shrink-0">
+                      <Crosshair className="w-4 h-4" />
+                    </div>
                   </div>
 
-                  <div className="p-2 rounded-xl bg-[#141e30] text-orange-400 border border-[#233555] group-hover:scale-110 group-hover:border-orange-500/50 transition">
-                    <Crosshair className="w-4 h-4" />
+                  {/* Thermal Specs */}
+                  <div className="mt-3 bg-[#070c17] p-2.5 rounded-xl border border-[#182338] grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-400">
+                    <div>
+                      Sensor: <strong className="text-slate-200">{hotspot.sensorLabel}</strong>
+                    </div>
+                    <div>
+                      Confidence: <strong className="text-orange-300 uppercase">{hotspot.confidence}</strong>
+                    </div>
+                    <div>
+                      Brightness: <strong className="text-slate-200">{hotspot.brightness.toFixed(1)} K</strong>
+                    </div>
+                    <div>
+                      FRP Power: <strong className="text-red-400">{hotspot.frp.toFixed(2)} MW</strong>
+                    </div>
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                  {hotspot.summary}
-                </p>
-
-                {/* Thermal Specs */}
-                <div className="mt-3 bg-[#070c17] p-2.5 rounded-xl border border-[#182338] grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-400">
-                  <div>
-                    Sensor: <strong className="text-slate-200">{hotspot.satellite}</strong>
-                  </div>
-                  <div>
-                    Confidence: <strong className="text-orange-300">{hotspot.confidence}</strong>
-                  </div>
-                  <div>
-                    Brightness: <strong className="text-slate-200">{hotspot.brightnessKelvin} K</strong>
-                  </div>
-                  <div>
-                    Power: <strong className="text-slate-200">{hotspot.fireRadiativePowerMW} MW</strong>
-                  </div>
+                <div className="mt-3 pt-2.5 border-t border-[#1e2e4a] flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 text-[10px]">
+                    Acquired {hotspot.acqDate} ({hotspot.acqTime} UTC)
+                  </span>
+                  <span className="text-orange-400 font-bold flex items-center gap-1 group-hover:underline">
+                    <span>Focus Map</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-orange-400" />
+                  </span>
                 </div>
               </div>
-
-              <div className="mt-3 pt-2.5 border-t border-[#1e2e4a] flex items-center justify-between text-[11px]">
-                <span className="text-slate-400 text-[10px]">
-                  {hotspot.acqDate} ({hotspot.acqTime})
-                </span>
-                <span className="text-orange-400 font-bold flex items-center gap-1 group-hover:underline">
-                  <span>Focus Map</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-orange-400" />
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -747,7 +625,7 @@ export const SatelliteFireMonitoringView: React.FC = () => {
 
       {/* Footer attribution */}
       <div className="text-center text-[10px] text-slate-500 pt-2 border-t border-[#152033]">
-        Satellite Data Source: NASA Earth Observing System Data and Information System (EOSDIS) • Fire Information for Resource Management System (FIRMS) • MODIS & VIIRS Near Real-Time (NRT) Products.
+        Satellite Data Source: NASA Earth Observing System Data and Information System (EOSDIS) • Fire Information for Resource Management System (FIRMS) API • VIIRS & MODIS Near Real-Time Active Fire Data for Belize Bounding Box [-89.3, 15.8, -87.4, 18.6].
       </div>
     </div>
   );

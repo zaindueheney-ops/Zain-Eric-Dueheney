@@ -28,6 +28,15 @@ export default defineConfig(() => {
             Accept: 'application/json',
           },
         },
+        '/api/firms': {
+          target: 'https://firms.modaps.eosdis.nasa.gov',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (p) => p.replace(/^\/api\/firms/, ''),
+          headers: {
+            Accept: '*/*',
+          },
+        },
       },
     },
   };
