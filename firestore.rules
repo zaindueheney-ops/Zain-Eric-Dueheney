@@ -1,0 +1,272 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default Deny All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email in ['zaindueheney@gmail.com', 'zdueheney@galen.edu.bz']) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isResponderOrDispatcher() {
+      return isSignedIn() && (
+        isAdmin() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['responder', 'dispatcher', 'admin']))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidBelizeDistrict(d) {
+      return d in ['Belize', 'Cayo', 'Corozal', 'Orange Walk', 'Stann Creek', 'Toledo', 'International / Other'] ||
+        (d is string && d.size() <= 60);
+    }
+
+    function isValidSeverity(s) {
+      return s in ['critical', 'high', 'medium', 'low'];
+    }
+
+    function isValidStatus(s) {
+      return s in ['reported', 'dispatched', 'in_progress', 'resolved', 'false_alarm'];
+    }
+
+    function isValidCategory(c) {
+      return c in ['fire', 'medical', 'flood_weather', 'accident', 'crime_security', 'marine_coastal', 'infrastructure', 'other'];
+    }
+
+    // --- User Profile Validation ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['displayName', 'email', 'role', 'district']) &&
+        data.keys().hasOnly(['id', 'displayName', 'email', 'phone', 'role', 'district', 'organization', 'firstName', 'lastName', 'phoneCountryCode', 'fullPhone', 'dateOfBirth', 'nationality', 'createdAt', 'updatedAt']) &&
+        data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 120 &&
+        data.email is string && data.email.size() > 0 && data.email.size() <= 120 &&
+        data.role in ['citizen', 'responder', 'dispatcher', 'admin'] &&
+        isValidBelizeDistrict(data.district) &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+        (!('firstName' in data) || (data.firstName is string && data.firstName.size() <= 60)) &&
+        (!('lastName' in data) || (data.lastName is string && data.lastName.size() <= 60)) &&
+        (!('phoneCountryCode' in data) || (data.phoneCountryCode is string && data.phoneCountryCode.size() <= 10)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+        (!('fullPhone' in data) || (data.fullPhone is string && data.fullPhone.size() <= 40)) &&
+        (!('dateOfBirth' in data) || (data.dateOfBirth is string && data.dateOfBirth.size() <= 20)) &&
+        (!('nationality' in data) || (data.nationality is string && data.nationality.size() <= 80)) &&
+        (!('organization' in data) || (data.organization is string && data.organization.size() <= 120));
+    }
+
+    // --- Emergency Incident Validation ---
+    function isValidEmergencyIncident(data) {
+      return data.keys().hasAll(['title', 'category', 'severity', 'status', 'district', 'locationName', 'latitude', 'longitude', 'reporterId', 'reporterName']) &&
+        data.keys().hasOnly(['id', 'title', 'category', 'severity', 'status', 'description', 'district', 'locationName', 'latitude', 'longitude', 'imageUrl', 'reporterId', 'reporterName', 'reporterPhone', 'assignedUnit', 'responderNotes', 'createdAt', 'updatedAt']) &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+        isValidCategory(data.category) &&
+        isValidSeverity(data.severity) &&
+        isValidStatus(data.status) &&
+        isValidBelizeDistrict(data.district) &&
+        data.locationName is string && data.locationName.size() > 0 && data.locationName.size() <= 300 &&
+        data.latitude is number && data.latitude >= 14.5 && data.latitude <= 20.0 &&
+        data.longitude is number && data.longitude >= -91.0 && data.longitude <= -86.5 &&
+        data.reporterId is string && data.reporterId.size() <= 128 &&
+        data.reporterName is string && data.reporterName.size() > 0 && data.reporterName.size() <= 120 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 5000)) &&
+        (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 500000)) &&
+        (!('reporterPhone' in data) || (data.reporterPhone is string && data.reporterPhone.size() <= 50)) &&
+        (!('assignedUnit' in data) || (data.assignedUnit is string && data.assignedUnit.size() <= 150)) &&
+        (!('responderNotes' in data) || (data.responderNotes is string && data.responderNotes.size() <= 2000));
+    }
+
+    // --- Incident Log Validation ---
+    function isValidIncidentLog(data, emergencyId) {
+      return data.keys().hasAll(['emergencyId', 'authorId', 'authorName', 'newStatus', 'note']) &&
+        data.keys().hasOnly(['id', 'emergencyId', 'authorId', 'authorName', 'authorRole', 'previousStatus', 'newStatus', 'note', 'createdAt']) &&
+        data.emergencyId == emergencyId &&
+        data.authorId == request.auth.uid &&
+        data.authorName is string && data.authorName.size() > 0 && data.authorName.size() <= 100 &&
+        isValidStatus(data.newStatus) &&
+        data.note is string && data.note.size() > 0 && data.note.size() <= 1000 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+        (!('authorRole' in data) || (data.authorRole is string && data.authorRole.size() <= 50)) &&
+        (!('previousStatus' in data) || (data.previousStatus is string && data.previousStatus.size() <= 50));
+    }
+
+    // --- Official Advisory Validation ---
+    function isValidAdvisoryUrgency(u) {
+      return u in ['critical', 'warning', 'watch', 'advisory', 'all_clear'];
+    }
+
+    function isValidOfficialAdvisory(data) {
+      return data.keys().hasAll(['title', 'urgencyLevel', 'district', 'summary', 'publishedBy', 'publisherEmail', 'active']) &&
+        data.keys().hasOnly(['title', 'urgencyLevel', 'district', 'summary', 'fileUrl', 'fileType', 'fileName', 'publishedBy', 'publisherEmail', 'publishedAt', 'active']) &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+        isValidAdvisoryUrgency(data.urgencyLevel) &&
+        (data.district == 'all' || isValidBelizeDistrict(data.district)) &&
+        data.summary is string && data.summary.size() <= 3000 &&
+        data.publishedBy is string && data.publishedBy.size() <= 100 &&
+        data.publisherEmail is string && data.publisherEmail.size() <= 120 &&
+        data.active is bool &&
+        (!('fileUrl' in data) || (data.fileUrl is string && data.fileUrl.size() <= 900000)) &&
+        (!('fileType' in data) || (data.fileType in ['image', 'pdf'])) &&
+        (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 150));
+    }
+
+    // --- Live Dispatch Chat Validation ---
+    function isValidDispatchConversation(data) {
+      return data.keys().hasAll(['citizenId', 'citizenName', 'citizenEmail']) &&
+        data.keys().hasOnly(['id', 'citizenId', 'citizenName', 'citizenEmail', 'citizenPhone', 'lastMessage', 'lastMessageAt', 'unreadByAdmin', 'unreadByCitizen', 'updatedAt']) &&
+        data.citizenId is string && data.citizenId.size() > 0 && data.citizenId.size() <= 128 &&
+        data.citizenName is string && data.citizenName.size() > 0 && data.citizenName.size() <= 120 &&
+        data.citizenEmail is string && data.citizenEmail.size() > 0 && data.citizenEmail.size() <= 120 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+        (!('citizenPhone' in data) || (data.citizenPhone is string && data.citizenPhone.size() <= 40)) &&
+        (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 1000)) &&
+        (!('lastMessageAt' in data) || (data.lastMessageAt is string && data.lastMessageAt.size() <= 50)) &&
+        (!('unreadByAdmin' in data) || data.unreadByAdmin is bool) &&
+        (!('unreadByCitizen' in data) || data.unreadByCitizen is bool) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidDispatchMessage(data, convId) {
+      return data.keys().hasAll(['conversationId', 'senderId', 'senderName', 'senderRole', 'message']) &&
+        data.keys().hasOnly(['id', 'conversationId', 'senderId', 'senderName', 'senderRole', 'message', 'incidentId', 'createdAt']) &&
+        data.conversationId == convId &&
+        data.senderId == request.auth.uid &&
+        data.senderName is string && data.senderName.size() > 0 && data.senderName.size() <= 120 &&
+        data.senderRole in ['citizen', 'responder', 'dispatcher', 'admin'] &&
+        data.message is string && data.message.size() > 0 && data.message.size() <= 2000 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+        (!('incidentId' in data) || (data.incidentId is string && data.incidentId.size() <= 128)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    // ==========================================
+    // Collections
+    // ==========================================
+
+    // 1. Users Collection (Admin-only listing for citizen verification)
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+
+      // Citizen self-registration (new user profile creation)
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming()) && (
+        // Standard self-registration cannot elevate to admin or dispatcher without approval
+        incoming().role in ['citizen', 'responder'] || isAdmin()
+      );
+
+      // User updating their own profile (or admin override)
+      allow update: if isValidId(userId) && isValidUserProfile(incoming()) && (
+        isAdmin() ||
+        (isOwner(userId) &&
+          incoming().email == existing().email &&
+          (incoming().role == existing().role || isAdmin()) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phone', 'district', 'organization', 'firstName', 'lastName', 'phoneCountryCode', 'fullPhone', 'dateOfBirth', 'nationality', 'updatedAt'])
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // 2. Emergencies Collection
+    match /emergencies/{emergencyId} {
+      // Any signed-in user (citizen or responder) can read Belize emergency reports for public safety & coordination
+      allow get, list: if isSignedIn();
+
+      // Anyone authenticated can report an emergency, must set reporterId to themselves
+      allow create: if isSignedIn() && isValidId(emergencyId) &&
+        isValidEmergencyIncident(incoming()) &&
+        incoming().reporterId == request.auth.uid &&
+        incoming().status == 'reported';
+
+      // Updates partitioned by Role and Action
+      allow update: if isSignedIn() && isValidId(emergencyId) && isValidEmergencyIncident(incoming()) && (
+        isAdmin() ||
+        // Terminal state lock: if already resolved/false_alarm, only admin or dispatcher can modify
+        (existing().status in ['resolved', 'false_alarm'] ? isResponderOrDispatcher() : true) &&
+        (
+          // Action 1: Reporter updates details before dispatch
+          (
+            existing().reporterId == request.auth.uid &&
+            existing().status == 'reported' &&
+            incoming().reporterId == existing().reporterId &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'imageUrl', 'locationName', 'latitude', 'longitude', 'updatedAt'])
+          ) ||
+          // Action 2: Field responders can update operational notes and status on ALREADY APPROVED incidents (New incident approval strictly requires isAdmin)
+          (
+            existing().status != 'reported' &&
+            isResponderOrDispatcher() &&
+            incoming().reporterId == existing().reporterId &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'assignedUnit', 'responderNotes', 'severity', 'updatedAt'])
+          )
+        )
+      );
+
+      allow delete: if isAdmin();
+
+      // Subcollection: Timeline / Incident logs
+      match /logs/{logId} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn() && isValidId(logId) &&
+          isValidIncidentLog(incoming(), emergencyId) &&
+          exists(/databases/$(database)/documents/emergencies/$(emergencyId));
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // 3. Official Advisories Collection (National Emergency Notices, PDF & Image Bulletins)
+    match /advisories/{advisoryId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isAdmin() && isValidId(advisoryId) && isValidOfficialAdvisory(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // 4. Live Dispatch Conversations & In-App Chat
+    match /conversations/{conversationId} {
+      allow get: if isSignedIn() && (resource.data.citizenId == request.auth.uid || isAdmin());
+      allow list: if isAdmin() || (isSignedIn() && resource.data.citizenId == request.auth.uid);
+      allow create, update: if isSignedIn() && isValidId(conversationId) && isValidDispatchConversation(incoming()) &&
+        (incoming().citizenId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow get, list: if isSignedIn() && (conversationId == request.auth.uid || isAdmin());
+        allow create: if isSignedIn() && isValidId(messageId) && isValidDispatchMessage(incoming(), conversationId) &&
+          (conversationId == request.auth.uid || isAdmin());
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // Admin collection for role checks
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,400 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered citizen or emergency responder profile in Belize.",
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user.",
+          "maxLength": 60
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user.",
+          "maxLength": 60
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Full name of the citizen or responder.",
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "maxLength": 120
+        },
+        "phoneCountryCode": {
+          "type": "string",
+          "description": "International telephone dial code (e.g. +501, +1, +44).",
+          "maxLength": 10
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number.",
+          "maxLength": 30
+        },
+        "fullPhone": {
+          "type": "string",
+          "description": "Full international phone number with country code.",
+          "maxLength": 40
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "Date of birth in YYYY-MM-DD format.",
+          "maxLength": 20
+        },
+        "nationality": {
+          "type": "string",
+          "description": "Nationality or citizenship country of the user.",
+          "maxLength": 80
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user in the incident network.",
+          "enum": ["citizen", "responder", "dispatcher", "admin"]
+        },
+        "district": {
+          "type": "string",
+          "description": "Belize district of residence or primary jurisdiction, or International.",
+          "maxLength": 50
+        },
+        "organization": {
+          "type": "string",
+          "description": "Affiliation such as NEMO, Belize Police Dept, Fire Service, BERT, or Community.",
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp."
+        }
+      },
+      "required": ["displayName", "email", "role", "district"]
+    },
+    "EmergencyIncident": {
+      "title": "EmergencyIncident",
+      "description": "An emergency incident reported within Belize with geolocation and status tracking.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the emergency report.",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Short emergency summary.",
+          "maxLength": 150
+        },
+        "category": {
+          "type": "string",
+          "description": "Type of emergency.",
+          "enum": ["fire", "medical", "flood_weather", "accident", "crime_security", "marine_coastal", "infrastructure", "other"]
+        },
+        "severity": {
+          "type": "string",
+          "description": "Severity level of the emergency.",
+          "enum": ["critical", "high", "medium", "low"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Lifecycle status of the response.",
+          "enum": ["reported", "dispatched", "in_progress", "resolved", "false_alarm"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the issue or hazard.",
+          "maxLength": 2000
+        },
+        "district": {
+          "type": "string",
+          "description": "Belize district where the emergency is located.",
+          "enum": ["Belize", "Cayo", "Corozal", "Orange Walk", "Stann Creek", "Toledo"]
+        },
+        "locationName": {
+          "type": "string",
+          "description": "Human-readable address or landmark in Belize.",
+          "maxLength": 200
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Latitude coordinate within Belize bounds (approx 15.8 to 18.6)."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude coordinate within Belize bounds (approx -89.3 to -87.4)."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Photo of the issue (data URL or storage URL).",
+          "maxLength": 500000
+        },
+        "reporterId": {
+          "type": "string",
+          "description": "UID of the citizen or responder who submitted the report.",
+          "maxLength": 128
+        },
+        "reporterName": {
+          "type": "string",
+          "description": "Name of the reporter.",
+          "maxLength": 100
+        },
+        "reporterPhone": {
+          "type": "string",
+          "description": "Reporter callback phone number.",
+          "maxLength": 30
+        },
+        "assignedUnit": {
+          "type": "string",
+          "description": "Assigned response unit (e.g. Belize Fire Station #1, BERT Ambulance).",
+          "maxLength": 150
+        },
+        "responderNotes": {
+          "type": "string",
+          "description": "Operational notes added by response crews.",
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Submission timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp."
+        }
+      },
+      "required": ["title", "category", "severity", "status", "district", "locationName", "latitude", "longitude", "reporterId", "reporterName"]
+    },
+    "IncidentLog": {
+      "title": "IncidentLog",
+      "description": "Audit and status change log entry for an emergency incident.",
+      "type": "object",
+      "properties": {
+        "emergencyId": {
+          "type": "string",
+          "description": "Parent emergency incident ID.",
+          "maxLength": 128
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the user making the update.",
+          "maxLength": 128
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Name of the officer or dispatcher.",
+          "maxLength": 100
+        },
+        "authorRole": {
+          "type": "string",
+          "description": "Role of the author.",
+          "maxLength": 50
+        },
+        "previousStatus": {
+          "type": "string",
+          "description": "Status before the update.",
+          "maxLength": 50
+        },
+        "newStatus": {
+          "type": "string",
+          "description": "Status after the update.",
+          "maxLength": 50
+        },
+        "note": {
+          "type": "string",
+          "description": "Action log note.",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Log creation timestamp."
+        }
+      },
+      "required": ["emergencyId", "authorId", "authorName", "newStatus", "note"]
+    },
+    "OfficialAdvisory": {
+      "title": "OfficialAdvisory",
+      "description": "Official national emergency advisory, warning, or notice uploaded with image or PDF attachment.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Advisory title or bulletin headline.",
+          "maxLength": 200
+        },
+        "urgencyLevel": {
+          "type": "string",
+          "description": "Advisory alert tier.",
+          "enum": ["critical", "warning", "watch", "advisory", "all_clear"]
+        },
+        "district": {
+          "type": "string",
+          "description": "Applicable Belize district or all nationwide.",
+          "enum": ["all", "Belize", "Cayo", "Corozal", "Orange Walk", "Stann Creek", "Toledo"]
+        },
+        "summary": {
+          "type": "string",
+          "description": "Advisory instructions and bulletin summary.",
+          "maxLength": 3000
+        },
+        "fileUrl": {
+          "type": "string",
+          "description": "Base64 data URI of the advisory image or PDF file.",
+          "maxLength": 900000
+        },
+        "fileType": {
+          "type": "string",
+          "description": "File attachment type.",
+          "enum": ["image", "pdf"]
+        },
+        "fileName": {
+          "type": "string",
+          "description": "Original file name of the document or image.",
+          "maxLength": 150
+        },
+        "publishedBy": {
+          "type": "string",
+          "description": "Author name or publishing agency.",
+          "maxLength": 100
+        },
+        "publisherEmail": {
+          "type": "string",
+          "description": "Publisher email address.",
+          "maxLength": 120
+        },
+        "publishedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Publication timestamp."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether the advisory is currently active."
+        }
+      },
+      "required": ["title", "urgencyLevel", "district", "summary", "publishedBy", "publisherEmail", "active"]
+    },
+    "DispatchConversation": {
+      "title": "DispatchConversation",
+      "description": "Live chat thread between a citizen and Belize Central Dispatch.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "citizenId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "citizenName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "citizenEmail": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "citizenPhone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "lastMessage": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "lastMessageAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "unreadByAdmin": {
+          "type": "boolean"
+        },
+        "unreadByCitizen": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["citizenId", "citizenName", "citizenEmail"]
+    },
+    "DispatchMessage": {
+      "title": "DispatchMessage",
+      "description": "Individual message in a direct citizen-to-dispatch chat thread.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "conversationId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "senderId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "senderName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "senderRole": {
+          "type": "string",
+          "enum": ["citizen", "responder", "dispatcher", "admin"]
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "incidentId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["conversationId", "senderId", "senderName", "senderRole", "message"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Citizen and emergency responder profile documents."
+    },
+    "/emergencies/{emergencyId}": {
+      "schema": "EmergencyIncident",
+      "description": "Active and past emergency incident reports throughout Belize."
+    },
+    "/emergencies/{emergencyId}/logs/{logId}": {
+      "schema": "IncidentLog",
+      "description": "Operational timeline updates and status changes for an incident."
+    },
+    "/advisories/{advisoryId}": {
+      "schema": "OfficialAdvisory",
+      "description": "Official national advisories and bulletin PDF/image uploads published by the administrator."
+    },
+    "/conversations/{conversationId}": {
+      "schema": "DispatchConversation",
+      "description": "Conversations between citizens and central dispatch."
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": "DispatchMessage",
+      "description": "Real-time messages sent in the conversation."
+    }
+  }
+}

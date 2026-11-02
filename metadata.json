@@ -1,0 +1,9 @@
+{
+  "name": "Belize Alerts",
+  "description": "Real-time emergency incident reporting, geolocation tracking, and responder updates across Belize districts.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
