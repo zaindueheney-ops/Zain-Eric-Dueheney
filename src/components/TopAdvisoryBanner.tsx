@@ -24,16 +24,6 @@ import { useAuth } from '../context/AuthContext';
 import { useAdvisories } from '../context/AdvisoryContext';
 import { OfficialAdvisory, AdvisoryUrgency, BelizeDistrict } from '../types';
 import { BELIZE_DISTRICTS } from '../data/belizeGeo';
-import { NmsChiefMeteorologistModal } from './NmsChiefMeteorologistModal';
-import {
-  fetchNmsGeneralForecast,
-  fetchNmsMarineForecast,
-  CHIEF_METEOROLOGIST_INFO,
-  NmsGeneralForecast,
-  NmsMarineForecast,
-  FALLBACK_NMS_GENERAL_FORECAST,
-  FALLBACK_NMS_MARINE_FORECAST
-} from '../services/nmsWeatherService';
 
 export const TopAdvisoryBanner: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -42,34 +32,6 @@ export const TopAdvisoryBanner: React.FC = () => {
   const [activeAdvisoryIndex, setActiveAdvisoryIndex] = useState(0);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [viewingFileAdvisory, setViewingFileAdvisory] = useState<OfficialAdvisory | null>(null);
-
-  // Chief Meteorologist & NMS Live Desk State
-  const [isWeatherDeskOpen, setIsWeatherDeskOpen] = useState(false);
-  const [generalForecast, setGeneralForecast] = useState<NmsGeneralForecast>(FALLBACK_NMS_GENERAL_FORECAST);
-  const [marineForecast, setMarineForecast] = useState<NmsMarineForecast>(FALLBACK_NMS_MARINE_FORECAST);
-  const [isNmsLive, setIsNmsLive] = useState(false);
-  const [isNmsRefreshing, setIsNmsRefreshing] = useState(false);
-
-  const loadNmsData = useCallback(async () => {
-    setIsNmsRefreshing(true);
-    try {
-      const [genResult, marResult] = await Promise.all([
-        fetchNmsGeneralForecast(),
-        fetchNmsMarineForecast(),
-      ]);
-      setGeneralForecast(genResult.data);
-      setMarineForecast(marResult.data);
-      setIsNmsLive(genResult.isLive || marResult.isLive);
-    } catch (e) {
-      console.warn('NMS data load error:', e);
-    } finally {
-      setIsNmsRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadNmsData();
-  }, [loadNmsData]);
 
   // Upload Modal Form State
   const [newTitle, setNewTitle] = useState('');
@@ -239,18 +201,6 @@ export const TopAdvisoryBanner: React.FC = () => {
               {badge.label}
             </span>
           )}
-
-          {/* Quick Chief Meteorologist Desk Trigger */}
-          <button
-            type="button"
-            onClick={() => setIsWeatherDeskOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#27050e] hover:bg-[#3d0817] text-[#f3c853] hover:text-white border border-[#d4af37]/70 text-[10px] font-black shadow-sm transition hover:scale-105 active:scale-95"
-            title="Open Chief Meteorologist Weather Desk (Source: https://nms.gov.bz/)"
-          >
-            <CloudSun className="w-3 h-3 text-[#facc15]" />
-            <span>Chief Meteorologist Desk</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          </button>
         </div>
 
         {/* Advisory Switcher, Official Link & Admin Upload Button */}
@@ -310,27 +260,8 @@ export const TopAdvisoryBanner: React.FC = () => {
               <span>•</span>
               <span className="font-medium">Issued: {new Date(currentAdvisory.publishedAt).toLocaleDateString()} {new Date(currentAdvisory.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               <span>•</span>
-              <span className="text-amber-200/90 font-semibold flex items-center gap-1">
-                <span>Authority:</span>
-                <button
-                  type="button"
-                  onClick={() => setIsWeatherDeskOpen(true)}
-                  className="text-[#f3c853] underline font-bold hover:text-white"
-                  title="View Chief Meteorologist details"
-                >
-                  {CHIEF_METEOROLOGIST_INFO.name}
-                </button>
-                <span>(NMS •</span>
-                <a
-                  href="https://nms.gov.bz/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#f3c853] underline font-bold inline-flex items-center gap-0.5 hover:text-white"
-                >
-                  nms.gov.bz
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-                <span>)</span>
+              <span className="text-amber-200/90 font-semibold">
+                Authority: <strong className="text-white">{currentAdvisory.issuingAuthority || currentAdvisory.publishedBy || 'National Emergency Management Organization (NEMO)'}</strong>
               </span>
             </div>
 
@@ -341,6 +272,17 @@ export const TopAdvisoryBanner: React.FC = () => {
             <p className="text-xs sm:text-sm text-slate-200 max-w-4xl line-clamp-2 md:line-clamp-3 leading-relaxed">
               {currentAdvisory.summary}
             </p>
+
+            {currentAdvisory.safetyInstructions && (
+              <div className="bg-[#20030a] p-2.5 rounded-xl border border-amber-500/40 text-xs text-amber-200 space-y-0.5">
+                <span className="font-bold text-amber-300 text-[10px] uppercase tracking-wide block">
+                  Public Safety & Action Directive:
+                </span>
+                <p className="text-[11px] leading-relaxed text-slate-200">
+                  {currentAdvisory.safetyInstructions}
+                </p>
+              </div>
+            )}
 
             {currentAdvisory.publicationUrl && (
               <div className="pt-0.5">
@@ -356,30 +298,6 @@ export const TopAdvisoryBanner: React.FC = () => {
                 </a>
               </div>
             )}
-
-            {/* Quick Live Weather & Marine Snapshot Bar from nms.gov.bz */}
-            <div className="pt-2 border-t border-[#841c34]/60 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2 sm:gap-3 text-amber-200/90 flex-wrap">
-                <span className="flex items-center gap-1 font-bold text-white">
-                  <Thermometer className="w-3.5 h-3.5 text-red-400" />
-                  <span>Coast: {generalForecast.coast_high_f || 87}°F</span>
-                  <span className="text-amber-200/70 font-normal">• Inland: {generalForecast.inland_high_f || 91}°F</span>
-                  <span className="text-amber-200/70 font-normal">• Hills: {generalForecast.hills_high_f || 76}°F</span>
-                </span>
-                <span className="hidden md:inline text-amber-200/40">|</span>
-                <span className="text-[11px] text-slate-300 hidden md:inline">
-                  Winds: {generalForecast.wind_speed || '5-10 kts'} • Sea: {generalForecast.sea_state_m2m?.join(' / ') || 'Light Chop'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsWeatherDeskOpen(true)}
-                className="text-[11px] font-bold text-[#f3c853] hover:text-white flex items-center gap-1 ml-auto"
-              >
-                <span>Chief Meteorologist Weather Desk</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
           </div>
 
           {/* Attached Document or Image Showcase */}
@@ -715,16 +633,6 @@ export const TopAdvisoryBanner: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 3: CHIEF METEOROLOGIST & NMS WEATHER DESK */}
-      <NmsChiefMeteorologistModal
-        isOpen={isWeatherDeskOpen}
-        onClose={() => setIsWeatherDeskOpen(false)}
-        generalForecast={generalForecast}
-        marineForecast={marineForecast}
-        isLive={isNmsLive}
-        onRefresh={loadNmsData}
-        isRefreshing={isNmsRefreshing}
-      />
     </section>
   );
 };

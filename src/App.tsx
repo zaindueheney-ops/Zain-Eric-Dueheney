@@ -32,6 +32,7 @@ import { IncidentDetailModal } from './components/IncidentDetailModal';
 import { SelfRegistrationModal } from './components/SelfRegistrationModal';
 import { WelcomeAuthModal } from './components/WelcomeAuthModal';
 import { DispatchChatModal } from './components/DispatchChatModal';
+import { ChiefMeteorologistSideWidget } from './components/ChiefMeteorologistSideWidget';
 
 import { MessageSquare, AlertTriangle, Shield } from 'lucide-react';
 import { BelizeDistrict } from './types';
@@ -169,6 +170,7 @@ function MainEmergencyCommandApp() {
       <SelfRegistrationModal />
       <WelcomeAuthModal />
       <DispatchChatModal />
+      <ChiefMeteorologistSideWidget variant="floating" />
 
       {/* Floating Central Dispatch Chat Launcher Widget */}
       <div className="fixed bottom-4 right-4 z-40">

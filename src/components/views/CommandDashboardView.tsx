@@ -25,6 +25,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useIncidents } from '../../context/IncidentContext';
 import { useAdvisories } from '../../context/AdvisoryContext';
 import { TopAdvisoryBanner } from '../TopAdvisoryBanner';
+import { ChiefMeteorologistSideWidget } from '../ChiefMeteorologistSideWidget';
 import { DailyIncidentTrends } from '../DailyIncidentTrends';
 import { IncidentCard } from '../IncidentCard';
 import { EmergencyIncident } from '../../types';
@@ -112,8 +113,15 @@ export const CommandDashboardView: React.FC = () => {
         </div>
       </div>
 
-      {/* Official Weather Advisory Desk (Live NMS Belize Sync) */}
-      <TopAdvisoryBanner />
+      {/* Official State of Emergency / National Advisory Banner & Chief Meteorologist Desk Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
+        <div className="lg:col-span-8 xl:col-span-9 flex flex-col justify-center">
+          <TopAdvisoryBanner />
+        </div>
+        <div className="lg:col-span-4 xl:col-span-3 flex flex-col">
+          <ChiefMeteorologistSideWidget variant="card" />
+        </div>
+      </div>
 
       {/* 2.1 Key Performance Indicators (6 Cards from Real Data) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
