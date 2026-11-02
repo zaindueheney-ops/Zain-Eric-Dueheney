@@ -410,51 +410,8 @@ export const CommandDashboardView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column (4 cols): Response Teams & Recent Administrative Activity */}
+        {/* Right Column (4 cols): Evacuation Shelters & Recent Administrative Activity */}
         <div className="lg:col-span-4 space-y-3">
-          {/* Active Teams Status Box */}
-          <div className="bg-[#0c1424] p-3.5 rounded-2xl border border-[#233555] shadow-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Radio className="w-4 h-4 text-emerald-400" />
-                <h3 className="font-bold text-xs sm:text-sm text-white">Response Force Readiness</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('response_operations')}
-                className="text-[10px] text-[#d4af37] hover:underline font-bold"
-              >
-                Manage
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {responseTeams.slice(0, 4).map((team) => (
-                <div
-                  key={team.id}
-                  className="bg-[#070c17] p-2.5 rounded-xl border border-[#1e293b] flex items-center justify-between gap-2 text-xs"
-                >
-                  <div className="min-w-0">
-                    <div className="font-bold text-white truncate text-xs">{team.name}</div>
-                    <div className="text-[10px] text-slate-400 truncate">
-                      {team.organization} • {team.district}
-                    </div>
-                  </div>
-                  <span
-                    className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${
-                      team.status === 'deployed'
-                        ? 'bg-blue-600 text-white'
-                        : team.status === 'available'
-                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
-                        : 'bg-amber-950 text-yellow-300'
-                    }`}
-                  >
-                    {team.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Evacuation Shelters Status Summary */}
           <div className="bg-[#0c1424] p-3.5 rounded-2xl border border-[#233555] shadow-lg space-y-3">

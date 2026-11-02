@@ -153,19 +153,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchProfile(currentUser.uid);
-        setShowAuthGreetingModal(false);
-      } else {
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (currentUser) => {
+        setUser(currentUser);
+        if (currentUser) {
+          try {
+            await fetchProfile(currentUser.uid);
+          } catch (profileErr) {
+            console.warn('Error fetching profile:', profileErr);
+          }
+          setShowAuthGreetingModal(false);
+        } else {
+          setProfile(null);
+          setShowRegisterModal(false);
+          // Guest mode removed: authentication is strictly required to access Belize Alerts
+          setShowAuthGreetingModal(true);
+        }
+        setLoading(false);
+      },
+      (error) => {
+        console.warn('Firebase Auth state notice:', error);
+        // Stale or invalid token failure gracefully clears auth state without crashing
+        setUser(null);
         setProfile(null);
-        setShowRegisterModal(false);
-        // Guest mode removed: authentication is strictly required to access Belize Alerts
         setShowAuthGreetingModal(true);
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
 
     return () => unsubscribe();
   }, []);

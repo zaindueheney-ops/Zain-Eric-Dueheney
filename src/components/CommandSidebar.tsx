@@ -50,7 +50,7 @@ export const CommandSidebar: React.FC = () => {
 
   const { user, profile, isAdmin } = useAuth();
   const { pendingIncidents, approvedIncidents } = useIncidents();
-  const { advisories } = useIncidents ? useAdvisories() : { advisories: [] };
+  const { advisories } = useAdvisories();
 
   const isSuperAdmin = Boolean(
     isAuthorizedAdminEmail(user?.email) || profile?.adminRole === 'super_admin'

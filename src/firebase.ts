@@ -80,9 +80,10 @@ export async function testConnection(): Promise<boolean> {
       if (
         error.message.includes('the client is offline') ||
         error.message.includes('Fetching auth token failed') ||
-        error.message.includes('securetoken.googleapis.com')
+        error.message.includes('securetoken.googleapis.com') ||
+        error.message.includes('Failed to get document because the client is offline')
       ) {
-        console.warn("Firestore client is offline or authenticating:", error.message);
+        console.warn("Firestore client operating in resilient offline/initialization mode:", error.message);
         return false;
       }
     }

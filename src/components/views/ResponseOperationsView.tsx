@@ -58,6 +58,10 @@ export const ResponseOperationsView: React.FC = () => {
 
   const handleAddTeamSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert('Operational dispatch and team registration are restricted to authorized administrators.');
+      return;
+    }
     if (!newTeamName.trim() || !newLeadOfficer.trim()) return;
 
     setIsSubmitting(true);
@@ -87,6 +91,10 @@ export const ResponseOperationsView: React.FC = () => {
 
   const handleDispatchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert('Incident dispatching is restricted to authorized administrators.');
+      return;
+    }
     if (!selectedTeamForDispatch || !selectedIncidentId) return;
 
     const targetInc = approvedIncidents.find((i) => i.id === selectedIncidentId);
@@ -120,6 +128,10 @@ export const ResponseOperationsView: React.FC = () => {
   };
 
   const handleRecallTeam = async (team: ResponseTeam) => {
+    if (!isAdmin) {
+      alert('Only authorized administrators can recall deployed units.');
+      return;
+    }
     if (!confirm(`Recall ${team.name} to available standby status?`)) return;
     await updateResponseTeam(team.id, {
       status: 'available',
@@ -157,6 +169,16 @@ export const ResponseOperationsView: React.FC = () => {
           </button>
         )}
       </div>
+
+      {/* Citizen View Mode Operational Notice */}
+      {!isAdmin && (
+        <div className="bg-[#07111e] border border-blue-500/30 rounded-xl p-3 text-xs text-blue-200 flex items-center gap-2.5">
+          <Shield className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>
+            <strong>Read-Only Operational View:</strong> Central dispatching and tactical team deployment are managed exclusively by the National Emergency Operations Centre & Authorized Administrators. Citizens have read-only visibility into unit statuses.
+          </span>
+        </div>
+      )}
 
       {/* Force Status KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

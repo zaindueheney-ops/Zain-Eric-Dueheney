@@ -81,8 +81,8 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
 
   if (!incident) return null;
 
-  const isReporter = user?.uid === incident.reporterId;
-  const canUpdate = isResponder || isAdmin || isReporter;
+  // Operational control remains strictly with Administrators. Citizens cannot dispatch or alter status.
+  const canUpdate = Boolean(isAdmin);
 
   const handleStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -346,8 +346,8 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
             </div>
           )}
 
-          {/* Status Update Form (For Responders / Dispatchers / Reporter) */}
-          {canUpdate && (
+          {/* Status Update Form (Exclusively For Administrators / Dispatch Commanders) */}
+          {canUpdate ? (
             <div className="p-5 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl shadow-md space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -506,6 +506,13 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
                   </button>
                 </div>
               </form>
+            </div>
+          ) : (
+            <div className="p-3.5 bg-[#0b1220] border border-[#1e2e4a] rounded-xl text-xs text-slate-300 flex items-center gap-2.5">
+              <Shield className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>
+                <strong>Operational Dispatch Notice:</strong> Incident dispatching, response unit assignment, and operational status changes are restricted to Authorized Administrators and NEMO Dispatchers. Citizens have real-time visibility into incident status and logs.
+              </span>
             </div>
           )}
 
