@@ -24,10 +24,22 @@ interface AdvisoryContextType {
     title: string;
     urgencyLevel: AdvisoryUrgency;
     district: BelizeDistrict | 'all';
+    affectedCommunities?: string[];
     summary: string;
+    safetyInstructions?: string;
+    issuingAuthority?: string;
+    expiresAt?: string;
     fileUrl?: string;
     fileType?: 'image' | 'pdf';
     fileName?: string;
+    channels?: {
+      inApp: boolean;
+      email: boolean;
+      sms: boolean;
+      push: boolean;
+      community: boolean;
+      schools: boolean;
+    };
   }) => Promise<string>;
   deleteAdvisory: (id: string) => Promise<void>;
 }
@@ -38,10 +50,20 @@ const DEFAULT_SAMPLE_ADVISORY: OfficialAdvisory = {
   urgencyLevel: 'advisory',
   district: 'all',
   summary: 'A gentle and relatively moist airflow prevails across Belize. Sunny with cloudy spells today and cloudy at times tonight. A few showers and isolated thunderstorms mainly coastal and offshore this morning, central and southern inland this afternoon. Outlook: Cloudy spells with a few morning showers decreasing by afternoon. Official Source: National Meteorological Service of Belize (https://nms.gov.bz/).',
+  safetyInstructions: 'Small crafts should exercise caution in offshore waters. Motorists are advised to maintain safe following distance on slick highways.',
+  issuingAuthority: 'National Meteorological Service of Belize (NMS) • Chief Meteorologist Ronald Gordon',
   publishedBy: 'Mr. Ronald Gordon, Chief Meteorologist (NMS • https://nms.gov.bz/)',
   publisherEmail: 'chief@nms.gov.bz',
   publishedAt: new Date().toISOString(),
   active: true,
+  channels: {
+    inApp: true,
+    email: true,
+    sms: false,
+    push: true,
+    community: true,
+    schools: true,
+  },
 };
 
 const AdvisoryContext = createContext<AdvisoryContextType | undefined>(undefined);
@@ -94,10 +116,22 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     title: string;
     urgencyLevel: AdvisoryUrgency;
     district: BelizeDistrict | 'all';
+    affectedCommunities?: string[];
     summary: string;
+    safetyInstructions?: string;
+    issuingAuthority?: string;
+    expiresAt?: string;
     fileUrl?: string;
     fileType?: 'image' | 'pdf';
     fileName?: string;
+    channels?: {
+      inApp: boolean;
+      email: boolean;
+      sms: boolean;
+      push: boolean;
+      community: boolean;
+      schools: boolean;
+    };
   }): Promise<string> => {
     const id = `adv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const newDoc: OfficialAdvisory = {
@@ -105,7 +139,11 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       title: advisoryData.title,
       urgencyLevel: advisoryData.urgencyLevel,
       district: advisoryData.district,
+      affectedCommunities: advisoryData.affectedCommunities,
       summary: advisoryData.summary,
+      safetyInstructions: advisoryData.safetyInstructions,
+      issuingAuthority: advisoryData.issuingAuthority || 'Belize Emergency Operations Centre (EOC)',
+      expiresAt: advisoryData.expiresAt,
       fileUrl: advisoryData.fileUrl,
       fileType: advisoryData.fileType,
       fileName: advisoryData.fileName,
@@ -113,6 +151,14 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       publisherEmail: user?.email || 'zaindueheney@gmail.com',
       publishedAt: new Date().toISOString(),
       active: true,
+      channels: advisoryData.channels || {
+        inApp: true,
+        email: true,
+        sms: false,
+        push: true,
+        community: true,
+        schools: false,
+      },
     };
 
     try {

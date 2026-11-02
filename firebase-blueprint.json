@@ -395,6 +395,24 @@
     "/conversations/{conversationId}/messages/{messageId}": {
       "schema": "DispatchMessage",
       "description": "Real-time messages sent in the conversation."
+    },
+    "/response_teams/{teamId}": {
+      "description": "Registered first responder strike forces and emergency crews."
+    },
+    "/evacuation_centres/{centreId}": {
+      "description": "Designated hurricane and flood evacuation shelters."
+    },
+    "/schools/{schoolId}": {
+      "description": "Registered educational institutions and school safety profiles."
+    },
+    "/organizations/{orgId}": {
+      "description": "Multi-tenant agencies, emergency departments, and municipalities."
+    },
+    "/audit_logs/{logId}": {
+      "description": "Tamper-resistant administrative and operational audit trail."
+    },
+    "/system_settings/{settingId}": {
+      "description": "National EOC alert status and system settings."
     }
   }
 }

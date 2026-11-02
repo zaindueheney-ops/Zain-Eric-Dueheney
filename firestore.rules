@@ -53,7 +53,7 @@ service cloud.firestore {
     }
 
     function isValidStatus(s) {
-      return s in ['reported', 'dispatched', 'in_progress', 'resolved', 'false_alarm'];
+      return s in ['reported', 'under_verification', 'verified', 'dispatched', 'in_progress', 'responding', 'resolved', 'closed', 'false_alarm'];
     }
 
     function isValidCategory(c) {
@@ -63,7 +63,7 @@ service cloud.firestore {
     // --- User Profile Validation ---
     function isValidUserProfile(data) {
       return data.keys().hasAll(['displayName', 'email', 'role', 'district']) &&
-        data.keys().hasOnly(['id', 'displayName', 'email', 'phone', 'role', 'district', 'organization', 'firstName', 'lastName', 'phoneCountryCode', 'fullPhone', 'dateOfBirth', 'nationality', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['id', 'displayName', 'email', 'phone', 'role', 'district', 'organization', 'firstName', 'lastName', 'phoneCountryCode', 'fullPhone', 'dateOfBirth', 'nationality', 'adminRole', 'assignedDistricts', 'permissions', 'appointedBy', 'appointedAt', 'createdAt', 'updatedAt']) &&
         data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 120 &&
         data.email is string && data.email.size() > 0 && data.email.size() <= 120 &&
         data.role in ['citizen', 'responder', 'dispatcher', 'admin'] &&
@@ -76,7 +76,10 @@ service cloud.firestore {
         (!('fullPhone' in data) || (data.fullPhone is string && data.fullPhone.size() <= 40)) &&
         (!('dateOfBirth' in data) || (data.dateOfBirth is string && data.dateOfBirth.size() <= 20)) &&
         (!('nationality' in data) || (data.nationality is string && data.nationality.size() <= 80)) &&
-        (!('organization' in data) || (data.organization is string && data.organization.size() <= 120));
+        (!('organization' in data) || (data.organization is string && data.organization.size() <= 120)) &&
+        (!('adminRole' in data) || (data.adminRole in ['super_admin', 'national_admin', 'district_admin', 'dispatcher', 'school_admin'])) &&
+        (!('appointedBy' in data) || (data.appointedBy is string && data.appointedBy.size() <= 120)) &&
+        (!('appointedAt' in data) || (data.appointedAt is string && data.appointedAt.size() <= 60));
     }
 
     // --- Emergency Incident Validation ---
@@ -268,5 +271,43 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+
+    // Response Teams
+    match /response_teams/{teamId} {
+      allow read: if isSignedIn();
+      allow write: if isResponderOrDispatcher() || isAdmin();
+    }
+
+    // Evacuation Shelters & Centres
+    match /evacuation_centres/{centreId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // School Safety Profiles
+    match /schools/{schoolId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Multi-tenant Organizations
+    match /organizations/{orgId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Tamper-resistant Audit Logs (create allowed for tracking, updates/deletions denied)
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // System Settings & National EOC Status
+    match /system_settings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
   }
 }
+

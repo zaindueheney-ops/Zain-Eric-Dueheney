@@ -8,6 +8,23 @@ export type BelizeDistrict =
 
 export type UserRole = 'citizen' | 'responder' | 'dispatcher' | 'admin';
 
+export type AdminRole =
+  | 'super_admin'
+  | 'national_admin'
+  | 'district_admin'
+  | 'dispatcher'
+  | 'school_admin';
+
+export interface AdminPermissions {
+  canVerifyIncidents: boolean;
+  canIssueAlerts: boolean;
+  canDispatchTeams: boolean;
+  canManageSchools: boolean;
+  canManageUsers: boolean;
+  canViewAuditLogs: boolean;
+  canManageSystemSettings: boolean;
+}
+
 export interface UserProfile {
   id?: string;
   firstName?: string;
@@ -22,6 +39,11 @@ export interface UserProfile {
   role: UserRole;
   district: BelizeDistrict | string;
   organization?: string;
+  adminRole?: AdminRole;
+  assignedDistricts?: BelizeDistrict[] | 'all';
+  permissions?: AdminPermissions;
+  appointedBy?: string;
+  appointedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -40,9 +62,13 @@ export type EmergencySeverity = 'critical' | 'high' | 'medium' | 'low';
 
 export type EmergencyStatus =
   | 'reported'
+  | 'under_verification'
+  | 'verified'
   | 'dispatched'
   | 'in_progress'
+  | 'responding'
   | 'resolved'
+  | 'closed'
   | 'false_alarm';
 
 export interface EmergencyIncident {
@@ -61,7 +87,12 @@ export interface EmergencyIncident {
   reporterName: string;
   reporterPhone?: string;
   assignedUnit?: string;
+  assignedTeamId?: string;
   responderNotes?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  closedAt?: string;
+  closureResolution?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -102,7 +133,11 @@ export interface OfficialAdvisory {
   title: string;
   urgencyLevel: AdvisoryUrgency;
   district: BelizeDistrict | 'all';
+  affectedCommunities?: string[];
   summary: string;
+  safetyInstructions?: string;
+  issuingAuthority?: string;
+  expiresAt?: string;
   fileUrl?: string; // base64 data URL of image or pdf
   fileType?: 'image' | 'pdf';
   fileName?: string;
@@ -110,6 +145,14 @@ export interface OfficialAdvisory {
   publisherEmail: string;
   publishedAt: string;
   active: boolean;
+  channels?: {
+    inApp: boolean;
+    email: boolean;
+    sms: boolean;
+    push: boolean;
+    community: boolean;
+    schools: boolean;
+  };
 }
 
 export interface DispatchConversation {
@@ -135,4 +178,142 @@ export interface DispatchChatMessage {
   incidentId?: string;
   createdAt: string;
 }
+
+// --- Response Operations ---
+export interface ResponseTeam {
+  id: string;
+  name: string;
+  organization: string;
+  district: BelizeDistrict | 'National';
+  category: 'nemo' | 'fire' | 'police' | 'medical' | 'marine' | 'transport' | 'other';
+  status: 'available' | 'deployed' | 'standby' | 'maintenance';
+  activeIncidentId?: string;
+  activeIncidentTitle?: string;
+  leadOfficer: string;
+  contactPhone: string;
+  personnelCount: number;
+  equipmentSummary: string;
+  updatedAt: string;
+}
+
+// --- Evacuation Centres ---
+export interface EvacuationCentre {
+  id: string;
+  name: string;
+  district: BelizeDistrict;
+  community: string;
+  address: string;
+  capacity: number;
+  currentOccupancy: number;
+  status: 'open' | 'standby' | 'full' | 'closed';
+  hasGenerator: boolean;
+  hasWaterReserve: boolean;
+  hasMedicalPost: boolean;
+  isWheelchairAccessible: boolean;
+  managerName: string;
+  managerPhone: string;
+  latitude: number;
+  longitude: number;
+  notes?: string;
+  updatedAt?: string;
+}
+
+// --- School Safety Profiles ---
+export interface SchoolSafetyProfile {
+  id: string;
+  name: string;
+  district: BelizeDistrict;
+  community: string;
+  principalName: string;
+  contactPhone: string;
+  emergencyEmail: string;
+  studentCount: number;
+  status: 'normal' | 'delayed' | 'closed' | 'evacuating' | 'designated_shelter';
+  isDesignatedShelter: boolean;
+  shelterCapacity?: number;
+  lastReportedAt: string;
+  safetyNotes?: string;
+  updatedAt?: string;
+}
+
+// --- Participating Communities ---
+export interface ParticipatingCommunity {
+  id: string;
+  name: string;
+  district: BelizeDistrict;
+  populationEstimate: number;
+  vulnerabilityLevel: 'low' | 'moderate' | 'high' | 'severe';
+  primaryHazards: string[];
+  liaisonOfficer: string;
+  liaisonPhone: string;
+  nearestShelter: string;
+  activePreparednessAlerts: number;
+}
+
+// --- Multi-Organization Management ---
+export interface RegisteredOrganization {
+  id: string;
+  name: string;
+  code: string;
+  type: 'government_agency' | 'first_responder' | 'municipality' | 'educational' | 'ngo' | 'commercial';
+  district: BelizeDistrict | 'National';
+  contactEmail: string;
+  contactPhone: string;
+  leadOfficial: string;
+  memberCount: number;
+  status: 'active' | 'pending' | 'suspended';
+  registeredAt: string;
+  notes?: string;
+}
+
+// --- Tamper-Resistant Audit Log ---
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  actionCategory: 'auth' | 'incident' | 'alert' | 'dispatch' | 'admin' | 'system';
+  actorId: string;
+  actorName: string;
+  actorEmail: string;
+  actorRole: string;
+  targetId?: string;
+  targetType?: string;
+  details: string;
+  district?: BelizeDistrict | 'National' | 'all';
+  timestamp: string;
+}
+
+// --- National Emergency DEFCON / Alert Phase ---
+export type EOCAlertPhase =
+  | 'green_normal'
+  | 'yellow_advisory'
+  | 'orange_watch'
+  | 'red_warning';
+
+export interface NationalEmergencyStatus {
+  phase: EOCAlertPhase;
+  phaseLabel: string;
+  declaredBy: string;
+  declaredAt: string;
+  activeEocLocations: string[];
+  bulletinSummary: string;
+}
+
+// --- Sidebar Menu Identifiers (15 operational modules) ---
+export type CommandViewTab =
+  | 'command_dashboard'
+  | 'national_map'
+  | 'incident_management'
+  | 'emergency_alerts'
+  | 'response_operations'
+  | 'community_safety'
+  | 'school_safety'
+  | 'evacuation_centres'
+  | 'analytics_reports'
+  | 'notifications'
+  | 'user_management'
+  | 'administrator_management'
+  | 'organization_management'
+  | 'audit_logs'
+  | 'system_settings';
+
 
