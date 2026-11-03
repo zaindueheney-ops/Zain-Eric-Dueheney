@@ -70,19 +70,58 @@ const DEFAULT_SAMPLE_ADVISORY: OfficialAdvisory = {
 
 const AdvisoryContext = createContext<AdvisoryContextType | undefined>(undefined);
 
+const LOCAL_STORAGE_DELETED_KEY = 'belize_alerts_deleted_advisories';
+
+function getDeletedAdvisoryIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_DELETED_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed);
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse deleted advisory IDs:', e);
+  }
+  return new Set();
+}
+
+function saveDeletedAdvisoryId(id: string) {
+  try {
+    const set = getDeletedAdvisoryIds();
+    set.add(id);
+    localStorage.setItem(LOCAL_STORAGE_DELETED_KEY, JSON.stringify(Array.from(set)));
+  } catch (e) {
+    console.warn('Failed to persist deleted advisory ID:', e);
+  }
+}
+
+function removeDeletedAdvisoryId(id: string) {
+  try {
+    const set = getDeletedAdvisoryIds();
+    if (set.has(id)) {
+      set.delete(id);
+      localStorage.setItem(LOCAL_STORAGE_DELETED_KEY, JSON.stringify(Array.from(set)));
+    }
+  } catch (e) {}
+}
+
 function getCachedAdvisories(): OfficialAdvisory[] {
   try {
+    const deletedIds = getDeletedAdvisoryIds();
     const raw = localStorage.getItem(LOCAL_STORAGE_ADVISORIES_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return parsed.filter((a: OfficialAdvisory) => a && a.id && !deletedIds.has(a.id));
       }
     }
   } catch (e) {
     console.warn('Failed to parse cached advisories:', e);
   }
-  return [DEFAULT_SAMPLE_ADVISORY];
+  const deletedIds = getDeletedAdvisoryIds();
+  return deletedIds.has(DEFAULT_SAMPLE_ADVISORY.id) ? [] : [DEFAULT_SAMPLE_ADVISORY];
 }
 
 function saveCachedAdvisories(list: OfficialAdvisory[]) {
@@ -106,24 +145,39 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
+          const deletedIds = getDeletedAdvisoryIds();
           const remoteList: OfficialAdvisory[] = [];
           snapshot.forEach((d) => {
             const data = d.data() as OfficialAdvisory;
-            remoteList.push({ ...data, id: d.id });
+            if (!deletedIds.has(d.id)) {
+              remoteList.push({ ...data, id: d.id });
+            }
           });
 
-          if (remoteList.length > 0) {
-            setAdvisories(remoteList);
-            saveCachedAdvisories(remoteList);
-          } else {
-            // Keep local cached advisories if available, otherwise sample
-            const cached = getCachedAdvisories();
-            if (cached.length > 0) {
-              setAdvisories(cached);
-            } else {
-              setAdvisories([DEFAULT_SAMPLE_ADVISORY]);
+          // MERGE remote list with local cached advisories using Map so no previously posted advisory is dropped
+          const mergedMap = new Map<string, OfficialAdvisory>();
+          const currentCache = getCachedAdvisories();
+          currentCache.forEach((adv) => {
+            if (!deletedIds.has(adv.id)) {
+              mergedMap.set(adv.id, adv);
             }
+          });
+          remoteList.forEach((adv) => {
+            if (!deletedIds.has(adv.id)) {
+              mergedMap.set(adv.id, adv);
+            }
+          });
+
+          if (!deletedIds.has(DEFAULT_SAMPLE_ADVISORY.id) && mergedMap.size === 0) {
+            mergedMap.set(DEFAULT_SAMPLE_ADVISORY.id, DEFAULT_SAMPLE_ADVISORY);
           }
+
+          const merged = Array.from(mergedMap.values()).sort(
+            (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+          );
+
+          setAdvisories(merged);
+          saveCachedAdvisories(merged);
           setLoading(false);
         },
         (error) => {
@@ -209,6 +263,7 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     // 1. Immediately persist to state & localStorage so it NEVER disappears
+    removeDeletedAdvisoryId(id);
     setAdvisories((prev) => {
       const updated = [newDoc, ...prev.filter((a) => a.id !== id)];
       saveCachedAdvisories(updated);
@@ -244,7 +299,8 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const deleteAdvisory = async (id: string): Promise<void> => {
-    // 1. Immediately remove from local state and cache
+    // 1. Immediately record deletion and update local state and cache
+    saveDeletedAdvisoryId(id);
     setAdvisories((prev) => {
       const updated = prev.filter((a) => a.id !== id);
       saveCachedAdvisories(updated);

@@ -154,7 +154,7 @@ export const CommandSidebar: React.FC = () => {
     },
     {
       id: 'evacuation_centres',
-      label: 'Evacuation Centres',
+      label: 'Evacuation Centers',
       shortLabel: 'Shelters',
       icon: Home,
       rolesAllowed: ['super_admin', 'national_admin', 'district_admin', 'dispatcher', 'school_admin', 'citizen'],

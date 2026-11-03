@@ -146,14 +146,14 @@ export const EvacuationCentresView: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="font-black text-base sm:text-lg text-white tracking-wide">
-                2026 National Hurricane Shelter Registry
+                2026 National Hurricane Evacuation Centers Registry
               </h2>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#380714] text-[#f3c853] border border-[#d4af37]/50">
                 Official NEMO Publication
               </span>
             </div>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Official shelter listings certified by the National Emergency Management Organization (NEMO) across all 6 Belize districts, including Class A, Class B safe havens, and physical disability accessibility.
+              Official evacuation centers and emergency shelters certified by the National Emergency Management Organization (NEMO) across all 6 Belize districts, including Class A, Class B safe havens, and physical disability accessibility.
             </p>
           </div>
         </div>
@@ -166,7 +166,7 @@ export const EvacuationCentresView: React.FC = () => {
             rel="noopener noreferrer"
             className="px-3 py-2 rounded-xl bg-[#121f36] hover:bg-[#1a2d4f] text-cyan-300 text-xs font-bold border border-cyan-500/40 transition flex items-center gap-1.5 shadow"
           >
-            <span>NEMO Shelter Locator</span>
+            <span>NEMO Evacuation Center Locator</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
           <a
@@ -268,12 +268,12 @@ export const EvacuationCentresView: React.FC = () => {
       {/* KPI Stats Ribbon */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
         <div className="bg-[#0b1220] p-3 rounded-xl border border-[#1e2e4a]">
-          <span className="text-[10px] font-black uppercase text-slate-400">Total Certified Shelters</span>
+          <span className="text-[10px] font-black uppercase text-slate-400">Total Certified Evacuation Centers</span>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-xl sm:text-2xl font-black text-cyan-300 font-mono">
               {combinedShelters.length}
             </span>
-            <span className="text-[10px] text-slate-400">Facilities</span>
+            <span className="text-[10px] text-slate-400">Centers</span>
           </div>
         </div>
 
@@ -528,7 +528,7 @@ export const EvacuationCentresView: React.FC = () => {
                     className="px-2.5 py-1 rounded bg-[#16233b] hover:bg-[#203254] text-amber-200 text-xs font-bold border border-[#273d66] transition flex items-center gap-1 shadow"
                   >
                     <Edit2 className="w-3 h-3" />
-                    <span>Manage Shelter</span>
+                    <span>Manage Evacuation Center</span>
                   </button>
                 </div>
               )}
@@ -544,7 +544,7 @@ export const EvacuationCentresView: React.FC = () => {
             <div className="flex items-center justify-between border-b border-[#1e2e4a] pb-3">
               <div>
                 <h3 className="font-bold text-sm sm:text-base">
-                  Manage Shelter: {editingCentre.name}
+                  Manage Evacuation Center: {editingCentre.name}
                 </h3>
                 <span className="text-[10px] text-amber-300 font-mono">
                   {editingCentre.classType} • {editingCentre.district} District
@@ -562,7 +562,7 @@ export const EvacuationCentresView: React.FC = () => {
             <form onSubmit={handleUpdateSubmit} className="space-y-3 text-xs">
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                  Shelter Operational Status:
+                  Evacuation Center Operational Status:
                 </label>
                 <select
                   value={newStatus}
@@ -616,7 +616,7 @@ export const EvacuationCentresView: React.FC = () => {
                   disabled={isUpdating}
                   className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold disabled:opacity-50"
                 >
-                  Save Shelter Update
+                  Save Evacuation Center Update
                 </button>
               </div>
             </form>

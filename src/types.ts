@@ -197,7 +197,7 @@ export interface ResponseTeam {
   updatedAt: string;
 }
 
-// --- Evacuation Centres ---
+// --- Evacuation Centers ---
 export interface EvacuationCentre {
   id: string;
   name: string;
@@ -218,6 +218,8 @@ export interface EvacuationCentre {
   notes?: string;
   updatedAt?: string;
 }
+
+export type EvacuationCenter = EvacuationCentre;
 
 // --- School Safety Profiles ---
 export interface SchoolSafetyProfile {

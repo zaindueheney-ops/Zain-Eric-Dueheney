@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   AlertTriangle,
   Upload,
@@ -10,15 +10,13 @@ import {
   Trash2,
   ShieldAlert,
   ChevronRight,
-  Plus,
+  ChevronLeft,
   Eye,
-  CheckCircle2,
   Radio,
   FileCheck,
-  CloudSun,
-  Thermometer,
-  ShieldCheck,
-  Volume2
+  Layers,
+  CheckCircle2,
+  Info
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useAdvisories } from '../context/AdvisoryContext';
@@ -26,18 +24,22 @@ import { OfficialAdvisory, AdvisoryUrgency, BelizeDistrict } from '../types';
 import { BELIZE_DISTRICTS } from '../data/belizeGeo';
 
 export const TopAdvisoryBanner: React.FC = () => {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const { advisories, addAdvisory, deleteAdvisory } = useAdvisories();
 
   const [activeAdvisoryIndex, setActiveAdvisoryIndex] = useState(0);
+  const [viewAllStacked, setViewAllStacked] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [viewingFileAdvisory, setViewingFileAdvisory] = useState<OfficialAdvisory | null>(null);
+  const [deletingAdvisory, setDeletingAdvisory] = useState<OfficialAdvisory | null>(null);
 
   // Upload Modal Form State
   const [newTitle, setNewTitle] = useState('');
   const [newUrgency, setNewUrgency] = useState<AdvisoryUrgency>('warning');
   const [newDistrict, setNewDistrict] = useState<BelizeDistrict | 'all'>('all');
   const [newSummary, setNewSummary] = useState('');
+  const [newSafetyInstructions, setNewSafetyInstructions] = useState('');
+  const [newIssuingAuthority, setNewIssuingAuthority] = useState('National Emergency Management Organization (NEMO)');
   const [newPublicationUrl, setNewPublicationUrl] = useState('');
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [uploadedFileType, setUploadedFileType] = useState<'image' | 'pdf' | null>(null);
@@ -46,7 +48,9 @@ export const TopAdvisoryBanner: React.FC = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const currentAdvisory = advisories[activeAdvisoryIndex] || advisories[0];
+  // Ensure active index is within bounds
+  const safeIndex = Math.min(activeAdvisoryIndex, Math.max(0, advisories.length - 1));
+  const currentAdvisory = advisories[safeIndex] || advisories[0];
 
   // Handle File Selection (Image or PDF)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,9 +71,8 @@ export const TopAdvisoryBanner: React.FC = () => {
     setUploadedFileName(file.name);
 
     if (isPdf) {
-      // PDF documents must be under 850KB to fit cleanly in Firestore Base64 payload
       if (file.size > 850 * 1024) {
-        setUploadError(`PDF file is ${sizeInKB}KB. Please select a PDF smaller than 850KB.`);
+        setUploadError(`PDF file is ${sizeInKB}KB. Please select a PDF smaller than 850KB to preserve rapid loading.`);
         return;
       }
       const reader = new FileReader();
@@ -79,7 +82,6 @@ export const TopAdvisoryBanner: React.FC = () => {
       };
       reader.readAsDataURL(file);
     } else {
-      // Compress Image to fit under 700KB
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
@@ -127,6 +129,8 @@ export const TopAdvisoryBanner: React.FC = () => {
         urgencyLevel: newUrgency,
         district: newDistrict,
         summary: newSummary.trim() || 'Official Belize National Emergency Advisory bulletin published for public awareness and response coordination.',
+        safetyInstructions: newSafetyInstructions.trim() || undefined,
+        issuingAuthority: newIssuingAuthority.trim() || undefined,
         publicationUrl: newPublicationUrl.trim() || undefined,
         fileUrl: uploadedFileUrl || undefined,
         fileType: uploadedFileType || undefined,
@@ -138,11 +142,14 @@ export const TopAdvisoryBanner: React.FC = () => {
       setNewUrgency('warning');
       setNewDistrict('all');
       setNewSummary('');
+      setNewSafetyInstructions('');
+      setNewIssuingAuthority('National Emergency Management Organization (NEMO)');
       setNewPublicationUrl('');
       setUploadedFileUrl(null);
       setUploadedFileType(null);
       setUploadedFileName(null);
       setIsUploadModalOpen(false);
+      // Point to newest bulletin
       setActiveAdvisoryIndex(0);
     } catch (err: any) {
       setUploadError(err.message || 'Failed to publish advisory.');
@@ -157,54 +164,197 @@ export const TopAdvisoryBanner: React.FC = () => {
         return {
           label: 'RED ALERT • SEVERE EMERGENCY',
           classes: 'bg-red-600 text-white border-red-300 font-black animate-pulse',
+          dot: 'bg-red-400',
         };
       case 'warning':
         return {
           label: 'OFFICIAL WARNING',
           classes: 'bg-[#d4af37] text-slate-950 border-amber-200 font-extrabold',
+          dot: 'bg-amber-400',
         };
       case 'watch':
         return {
           label: 'EMERGENCY WATCH',
           classes: 'bg-orange-600 text-white border-orange-300 font-bold',
+          dot: 'bg-orange-400',
         };
       case 'all_clear':
         return {
           label: 'ALL CLEAR • NORMAL OPS',
           classes: 'bg-emerald-600 text-white border-emerald-300 font-bold',
+          dot: 'bg-emerald-400',
         };
       default:
         return {
           label: 'NATIONAL ADVISORY',
           classes: 'bg-[#6b0f24] text-amber-200 border-[#d4af37]/60 font-bold',
+          dot: 'bg-blue-400',
         };
     }
   };
 
-  if (!currentAdvisory && advisories.length === 0) {
+  if (advisories.length === 0) {
     return null;
   }
 
-  const badge = currentAdvisory ? getUrgencyBadge(currentAdvisory.urgencyLevel) : null;
+  // Renders a single advisory card
+  const renderAdvisoryContent = (adv: OfficialAdvisory, index: number, isSingleView: boolean) => {
+    const badge = getUrgencyBadge(adv.urgencyLevel);
+    return (
+      <div
+        key={adv.id}
+        className={`p-3.5 sm:p-4.5 ${
+          !isSingleView ? 'border-b border-[#841c34]/60 last:border-b-0 bg-[#28040d]/40' : ''
+        }`}
+      >
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex-1 space-y-1.5 min-w-0">
+            {/* Metadata Badges */}
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#f3c853]">
+              <span className={`px-2 py-0.5 rounded-full text-[10px] border ${badge.classes}`}>
+                {badge.label}
+              </span>
+              <span className="font-bold bg-[#20030a] px-2 py-0.5 rounded-md border border-[#841c34]">
+                📍 {adv.district === 'all' ? 'Nationwide (All Belize)' : `${adv.district} District`}
+              </span>
+              <span className="text-slate-300">
+                Issued: {new Date(adv.publishedAt).toLocaleDateString()} {new Date(adv.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span className="text-amber-200/90">
+                Authority: <strong className="text-white">{adv.issuingAuthority || adv.publishedBy || 'National Emergency Management Organization (NEMO)'}</strong>
+              </span>
+            </div>
+
+            {/* Headline */}
+            <h3 className="text-base sm:text-lg font-black tracking-tight text-white leading-tight">
+              {adv.title}
+            </h3>
+
+            {/* Summary */}
+            <p className="text-xs sm:text-sm text-slate-200 max-w-4xl leading-relaxed">
+              {adv.summary}
+            </p>
+
+            {/* Safety Directive */}
+            {adv.safetyInstructions && (
+              <div className="bg-[#20030a] p-2.5 rounded-xl border border-amber-500/40 text-xs text-amber-200 space-y-0.5">
+                <span className="font-bold text-amber-300 text-[10px] uppercase tracking-wide block">
+                  Public Safety & Action Directive:
+                </span>
+                <p className="text-[11px] leading-relaxed text-slate-200">
+                  {adv.safetyInstructions}
+                </p>
+              </div>
+            )}
+
+            {/* External Publication Link */}
+            {adv.publicationUrl && (
+              <div className="pt-0.5">
+                <a
+                  href={adv.publicationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#500717] hover:bg-[#6b0f24] text-[#f3c853] hover:text-white border border-[#d4af37]/40 text-xs font-bold transition shadow-sm"
+                  title="Open Official Publication Source"
+                >
+                  <ExternalLink className="w-3 h-3 text-[#f3c853]" />
+                  <span>Official Publication: {adv.publicationUrl}</span>
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Attachment & Actions */}
+          <div className="shrink-0 flex items-center gap-2 self-start md:self-center">
+            {adv.fileUrl && (
+              <div className="flex items-center gap-2 bg-[#20030a]/80 p-2 rounded-xl border border-[#d4af37]/40 shadow-inner">
+                {adv.fileType === 'pdf' ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-lg bg-red-950/80 border border-red-500/60 flex items-center justify-center text-red-400">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="text-left pr-2">
+                      <span className="text-[10px] font-bold text-red-300 uppercase tracking-wider block">Official PDF</span>
+                      <span className="text-xs font-bold text-white max-w-[130px] truncate block">
+                        {adv.fileName || 'Bulletin.pdf'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewingFileAdvisory(adv)}
+                      className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>View PDF</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <div
+                      onClick={() => setViewingFileAdvisory(adv)}
+                      className="relative w-11 h-11 rounded-lg overflow-hidden border border-[#d4af37]/60 cursor-pointer group"
+                    >
+                      <img
+                        src={adv.fileUrl}
+                        alt={adv.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition"
+                      />
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition flex items-center justify-center">
+                        <Eye className="w-3.5 h-3.5 text-white" />
+                      </div>
+                    </div>
+                    <div className="text-left pr-1">
+                      <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider block">Image Bulletin</span>
+                      <span className="text-xs font-bold text-white max-w-[110px] truncate block">
+                        {adv.fileName || 'Bulletin.jpg'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewingFileAdvisory(adv)}
+                      className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Inspect</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Admin Delete Action */}
+            {isAdmin && advisories.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setDeletingAdvisory(adv)}
+                title="Delete this advisory"
+                className="p-2 rounded-xl text-red-300 hover:text-white hover:bg-red-950/80 border border-red-700/60 transition"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#380714] via-[#4d0718] to-[#2d050f] border-2 border-[#d4af37]/80 text-white shadow-xl shadow-[#20030a]/50">
       {/* Top Banner Ribbon */}
-      <div className="px-3 sm:px-4 py-2 border-b border-[#841c34]/70 flex flex-wrap items-center justify-between gap-2 bg-[#20030a]/60">
+      <div className="px-3 sm:px-4 py-2 border-b border-[#841c34]/70 flex flex-wrap items-center justify-between gap-2 bg-[#20030a]/80">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-[#d4af37] text-slate-950 shadow-sm">
             <Radio className="w-3 h-3 text-[#500717] animate-pulse" />
-            Official Belize National Advisory
+            Official Belize National Emergency Advisories
           </span>
-          {badge && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] border ${badge.classes}`}>
-              {badge.label}
-            </span>
-          )}
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-950 text-amber-200 border border-amber-500/40">
+            ⚡ {advisories.length} Active {advisories.length === 1 ? 'Bulletin' : 'Bulletins'} Posted
+          </span>
         </div>
 
-        {/* Advisory Switcher, Official Link & Admin Upload Button */}
-        <div className="flex items-center gap-2">
+        {/* Quick Official Links & Admin Upload Button */}
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Direct Link to Official NMS Portal */}
           <a
             href="https://nms.gov.bz/"
@@ -217,156 +367,102 @@ export const TopAdvisoryBanner: React.FC = () => {
             <ExternalLink className="w-3 h-3 text-[#f3c853]" />
           </a>
 
+          {/* Toggle Stacked vs Single View if multiple advisories exist */}
           {advisories.length > 1 && (
-            <div className="flex items-center gap-1 text-[11px] font-bold text-amber-200/80">
-              <span>Bulletin:</span>
-              <div className="flex items-center gap-1">
-                {advisories.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveAdvisoryIndex(idx)}
-                    className={`w-5 h-5 rounded-md text-[10px] font-bold flex items-center justify-center transition ${
-                      activeAdvisoryIndex === idx
-                        ? 'bg-[#d4af37] text-slate-950 shadow'
-                        : 'bg-[#500717] text-amber-200/70 hover:bg-[#6b0f24]'
-                    }`}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setViewAllStacked(!viewAllStacked)}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-black border transition flex items-center gap-1.5 ${
+                viewAllStacked
+                  ? 'bg-[#d4af37] text-slate-950 border-[#d4af37] shadow'
+                  : 'bg-[#500717] text-amber-200 border-[#841c34] hover:bg-[#6b0f24]'
+              }`}
+            >
+              <Layers className="w-3 h-3" />
+              <span>{viewAllStacked ? 'Show Paged View' : `View All (${advisories.length}) Stacked`}</span>
+            </button>
           )}
 
           {/* Admin Upload Trigger */}
           {isAdmin && (
             <button
+              type="button"
               onClick={() => setIsUploadModalOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#f59e0b] hover:from-[#e5c158] hover:to-[#fbbf24] text-slate-950 text-xs font-black shadow-md transition hover:scale-105 active:scale-95"
             >
               <Upload className="w-3.5 h-3.5 text-slate-950" />
-              <span>Upload Advisory (Image / PDF)</span>
+              <span>Post New Advisory (PDF / Image)</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Advisory Body Content */}
-      <div className="p-3 sm:p-4">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex-1 space-y-1">
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#f3c853]">
-              <span className="font-bold">📍 Jurisdiction: {currentAdvisory.district === 'all' ? 'Nationwide (All Belize Districts)' : `${currentAdvisory.district} District`}</span>
-              <span>•</span>
-              <span className="font-medium">Issued: {new Date(currentAdvisory.publishedAt).toLocaleDateString()} {new Date(currentAdvisory.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-              <span>•</span>
-              <span className="text-amber-200/90 font-semibold">
-                Authority: <strong className="text-white">{currentAdvisory.issuingAuthority || currentAdvisory.publishedBy || 'National Emergency Management Organization (NEMO)'}</strong>
-              </span>
-            </div>
-
-            <h3 className="text-base sm:text-lg font-black tracking-tight text-white leading-tight">
-              {currentAdvisory.title}
-            </h3>
-
-            <p className="text-xs sm:text-sm text-slate-200 max-w-4xl line-clamp-2 md:line-clamp-3 leading-relaxed">
-              {currentAdvisory.summary}
-            </p>
-
-            {currentAdvisory.safetyInstructions && (
-              <div className="bg-[#20030a] p-2.5 rounded-xl border border-amber-500/40 text-xs text-amber-200 space-y-0.5">
-                <span className="font-bold text-amber-300 text-[10px] uppercase tracking-wide block">
-                  Public Safety & Action Directive:
-                </span>
-                <p className="text-[11px] leading-relaxed text-slate-200">
-                  {currentAdvisory.safetyInstructions}
-                </p>
-              </div>
-            )}
-
-            {currentAdvisory.publicationUrl && (
-              <div className="pt-0.5">
-                <a
-                  href={currentAdvisory.publicationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#500717] hover:bg-[#6b0f24] text-[#f3c853] hover:text-white border border-[#d4af37]/40 text-xs font-bold transition shadow-sm"
-                  title="Open Official Publication Source"
+      {/* Prominent Multi-Advisory Tab Bar (Displayed when multiple advisories exist & not in stacked view) */}
+      {!viewAllStacked && advisories.length > 1 && (
+        <div className="px-3 sm:px-4 py-2 bg-[#1b0309] border-b border-[#841c34]/70 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+            <span className="text-[10px] font-black uppercase text-amber-300 tracking-wider mr-1">
+              Active Bulletins:
+            </span>
+            {advisories.map((adv, idx) => {
+              const b = getUrgencyBadge(adv.urgencyLevel);
+              const isSelected = safeIndex === idx;
+              return (
+                <button
+                  key={adv.id}
+                  type="button"
+                  onClick={() => setActiveAdvisoryIndex(idx)}
+                  className={`group px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-[#d4af37] to-[#f3c853] text-slate-950 border-amber-200 shadow-md scale-102'
+                      : 'bg-[#30050f] text-amber-200/90 border-[#841c34] hover:bg-[#4d0718] hover:text-white'
+                  }`}
                 >
-                  <ExternalLink className="w-3 h-3" />
-                  <span>Official Publication: {currentAdvisory.publicationUrl}</span>
-                </a>
-              </div>
-            )}
+                  <span className={`w-2 h-2 rounded-full ${b.dot} ${isSelected ? 'animate-ping' : ''}`} />
+                  <span className="font-black">Bulletin {idx + 1}:</span>
+                  <span className="max-w-[160px] truncate text-left">
+                    {adv.district === 'all' ? 'Belize Nationwide' : adv.district} – {adv.title}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Attached Document or Image Showcase */}
-          {currentAdvisory.fileUrl && (
-            <div className="shrink-0 flex items-center gap-2 bg-[#20030a]/80 p-2 rounded-xl border border-[#d4af37]/40 shadow-inner">
-              {currentAdvisory.fileType === 'pdf' ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-lg bg-red-950/80 border border-red-500/60 flex items-center justify-center text-red-400">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div className="text-left pr-2">
-                    <span className="text-[10px] font-bold text-red-300 uppercase tracking-wider block">Official PDF Document</span>
-                    <span className="text-xs font-bold text-white max-w-[140px] truncate block">
-                      {currentAdvisory.fileName || 'Advisory_Bulletin.pdf'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setViewingFileAdvisory(currentAdvisory)}
-                    className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-bold shadow transition flex items-center gap-1"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>View PDF</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div
-                    onClick={() => setViewingFileAdvisory(currentAdvisory)}
-                    className="relative w-12 h-12 rounded-lg overflow-hidden border border-[#d4af37]/60 cursor-pointer group"
-                  >
-                    <img
-                      src={currentAdvisory.fileUrl}
-                      alt={currentAdvisory.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition"
-                    />
-                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition flex items-center justify-center">
-                      <Eye className="w-3.5 h-3.5 text-white" />
-                    </div>
-                  </div>
-                  <div className="text-left pr-1">
-                    <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider block">Official Image Bulletin</span>
-                    <span className="text-xs font-bold text-white max-w-[120px] truncate block">
-                      {currentAdvisory.fileName || 'Bulletin_Chart.jpg'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setViewingFileAdvisory(currentAdvisory)}
-                    className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-bold shadow transition flex items-center gap-1"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Inspect</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Admin Delete Action */}
-          {isAdmin && advisories.length > 1 && (
+          {/* Prev / Next controls */}
+          <div className="flex items-center gap-1 shrink-0">
             <button
-              onClick={() => deleteAdvisory(currentAdvisory.id)}
-              title="Delete this advisory"
-              className="p-1.5 rounded-lg text-red-300 hover:text-red-100 hover:bg-red-950/60 border border-red-700/50 transition self-center"
+              type="button"
+              disabled={safeIndex === 0}
+              onClick={() => setActiveAdvisoryIndex((prev) => Math.max(0, prev - 1))}
+              className="p-1 rounded-lg bg-[#30050f] hover:bg-[#500717] disabled:opacity-30 disabled:hover:bg-[#30050f] border border-[#841c34] text-amber-200 text-xs font-bold flex items-center gap-0.5"
             >
-              <Trash2 className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline pr-1">Prev</span>
             </button>
-          )}
+            <span className="text-[11px] font-mono text-amber-300 px-1 font-bold">
+              {safeIndex + 1} of {advisories.length}
+            </span>
+            <button
+              type="button"
+              disabled={safeIndex === advisories.length - 1}
+              onClick={() => setActiveAdvisoryIndex((prev) => Math.min(advisories.length - 1, prev + 1))}
+              className="p-1 rounded-lg bg-[#30050f] hover:bg-[#500717] disabled:opacity-30 disabled:hover:bg-[#30050f] border border-[#841c34] text-amber-200 text-xs font-bold flex items-center gap-0.5"
+            >
+              <span className="hidden sm:inline pl-1">Next</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Advisory Content Presentation */}
+      {viewAllStacked ? (
+        <div className="divide-y divide-[#841c34]/60">
+          {advisories.map((adv, idx) => renderAdvisoryContent(adv, idx, false))}
+        </div>
+      ) : (
+        renderAdvisoryContent(currentAdvisory, safeIndex, true)
+      )}
 
       {/* MODAL 1: VIEW FULL-SIZE IMAGE OR EMBEDDED PDF */}
       {viewingFileAdvisory && (
@@ -402,6 +498,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                   </a>
                 )}
                 <button
+                  type="button"
                   onClick={() => setViewingFileAdvisory(null)}
                   className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition"
                 >
@@ -453,18 +550,70 @@ export const TopAdvisoryBanner: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 2: UPLOAD OFFICIAL ADVISORY (IMAGE OR PDF) */}
+      {/* MODAL 2: CONFIRM ADVISORY DELETION */}
+      {deletingAdvisory && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+          <div className="bg-[#24050e] border-2 border-red-500 rounded-3xl max-w-md w-full p-5 shadow-2xl text-white space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-950/80 border border-red-500/50 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-black text-base text-white">Delete Emergency Advisory</h3>
+                <p className="text-xs text-red-200">This action will remove the bulletin from active circulation.</p>
+              </div>
+            </div>
+
+            <div className="bg-[#180309] p-3 rounded-xl border border-[#841c34] text-xs space-y-1">
+              <div className="font-bold text-white">{deletingAdvisory.title}</div>
+              <div className="text-amber-300 text-[11px]">
+                {deletingAdvisory.district === 'all' ? 'Nationwide' : `${deletingAdvisory.district} District`} • Issued: {new Date(deletingAdvisory.publishedAt).toLocaleDateString()}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#841c34]">
+              <button
+                type="button"
+                onClick={() => setDeletingAdvisory(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const idToDelete = deletingAdvisory.id;
+                  setDeletingAdvisory(null);
+                  await deleteAdvisory(idToDelete);
+                  setActiveAdvisoryIndex(0);
+                }}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs shadow-lg transition"
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: UPLOAD / PUBLISH OFFICIAL ADVISORY (IMAGE OR PDF) */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
-          <div className="bg-[#2a0610] border-2 border-[#d4af37] rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl text-white">
+          <div className="bg-[#2a0610] border-2 border-[#d4af37] rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl text-white">
             <div className="p-4 bg-[#3d0817] border-b border-[#841c34] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-[#f3c853]" />
-                <h3 className="font-black text-base text-white">
-                  Publish Official Emergency Advisory
-                </h3>
+                <div>
+                  <h3 className="font-black text-base text-white">
+                    Publish Official Emergency Advisory
+                  </h3>
+                  <p className="text-[10px] text-amber-200">
+                    Existing advisories will remain active. Multiple advisories can be posted simultaneously.
+                  </p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsUploadModalOpen(false)}
                 className="p-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10"
               >
@@ -472,7 +621,7 @@ export const TopAdvisoryBanner: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handlePublishAdvisory} className="p-5 space-y-4">
+            <form onSubmit={handlePublishAdvisory} className="p-5 space-y-3.5 overflow-y-auto max-h-[75vh]">
               {uploadError && (
                 <div className="p-2.5 rounded-xl bg-red-950 border border-red-500/80 text-red-200 text-xs font-medium">
                   {uploadError}
@@ -532,16 +681,44 @@ export const TopAdvisoryBanner: React.FC = () => {
                 </div>
               </div>
 
-              {/* Summary / Directive */}
+              {/* Issuing Authority */}
               <div>
                 <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
-                  Public Directive & Guidance Summary
+                  Issuing Authority
+                </label>
+                <input
+                  type="text"
+                  value={newIssuingAuthority}
+                  onChange={(e) => setNewIssuingAuthority(e.target.value)}
+                  placeholder="e.g. National Emergency Management Organization (NEMO) or NMS"
+                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              {/* Summary / Guidance */}
+              <div>
+                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  Advisory Summary & Details *
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={newSummary}
                   onChange={(e) => setNewSummary(e.target.value)}
-                  placeholder="Detail expected hazards, safe evacuation routes, shelter openings, and emergency contact frequencies..."
+                  placeholder="Detail the emergency situation, meteorological observations, and affected areas..."
+                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              {/* Safety Directive */}
+              <div>
+                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  Public Safety & Action Directive (Instructions)
+                </label>
+                <textarea
+                  rows={2}
+                  value={newSafetyInstructions}
+                  onChange={(e) => setNewSafetyInstructions(e.target.value)}
+                  placeholder="Specify evacuation directives, shelter instructions, emergency phone numbers, and road precautions..."
                   className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
@@ -555,7 +732,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                   type="url"
                   value={newPublicationUrl}
                   onChange={(e) => setNewPublicationUrl(e.target.value)}
-                  placeholder="e.g. https://nms.gov.bz/weather-forecast/ or official bulletin link"
+                  placeholder="e.g. https://nms.gov.bz/weather-forecast/ or official government publication"
                   className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
@@ -597,8 +774,8 @@ export const TopAdvisoryBanner: React.FC = () => {
                     </button>
                   </div>
                 ) : (
-                  <label className="flex flex-col items-center justify-center p-4 border border-white/10 rounded-xl cursor-pointer hover:bg-white/5 transition">
-                    <Upload className="w-6 h-6 text-[#f3c853] mb-1.5" />
+                  <label className="flex flex-col items-center justify-center p-3.5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/5 transition">
+                    <Upload className="w-6 h-6 text-[#f3c853] mb-1" />
                     <span className="text-xs font-bold text-white">Choose File (PDF or Image)</span>
                     <span className="text-[10px] text-slate-400 mt-0.5">Supports .pdf, .jpg, .png, .webp</span>
                     <input
@@ -632,7 +809,6 @@ export const TopAdvisoryBanner: React.FC = () => {
           </div>
         </div>
       )}
-
     </section>
   );
 };
