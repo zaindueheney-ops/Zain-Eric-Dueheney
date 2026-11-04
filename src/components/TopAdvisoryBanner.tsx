@@ -20,7 +20,11 @@ import {
   Edit3
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useAdvisories, resolveAdvisoryFileUrl } from '../context/AdvisoryContext';
+import {
+  useAdvisories,
+  resolveAdvisoryFileUrl,
+  resolveAdvisoryAttachment,
+} from '../context/AdvisoryContext';
 import { OfficialAdvisory, AdvisoryUrgency, BelizeDistrict } from '../types';
 import { BELIZE_DISTRICTS } from '../data/belizeGeo';
 
@@ -176,6 +180,7 @@ export const TopAdvisoryBanner: React.FC = () => {
   };
 
   const handleOpenEdit = (adv: OfficialAdvisory) => {
+    const att = resolveAdvisoryAttachment(adv);
     setEditingAdvisory(adv);
     setEditTitle(adv.title || '');
     setEditUrgency(adv.urgencyLevel || 'warning');
@@ -184,9 +189,9 @@ export const TopAdvisoryBanner: React.FC = () => {
     setEditSafetyInstructions(adv.safetyInstructions || '');
     setEditIssuingAuthority(adv.issuingAuthority || 'National Emergency Management Organization (NEMO)');
     setEditPublicationUrl(adv.publicationUrl || '');
-    setEditFileUrl(adv.fileUrl || null);
-    setEditFileType(adv.fileType || null);
-    setEditFileName(adv.fileName || null);
+    setEditFileUrl(att.fileUrl || adv.fileUrl || null);
+    setEditFileType(att.fileType || adv.fileType || null);
+    setEditFileName(att.fileName || adv.fileName || null);
     setEditFileSizeText(null);
     setEditError(null);
   };
@@ -325,11 +330,26 @@ export const TopAdvisoryBanner: React.FC = () => {
   // Renders a single advisory card
   const renderAdvisoryContent = (adv: OfficialAdvisory, index: number, isSingleView: boolean) => {
     const badge = getUrgencyBadge(adv.urgencyLevel);
-    const pdfTargetUrl =
-      adv.fileUrl ||
-      resolveAdvisoryFileUrl(adv) ||
-      (adv.fileName?.toLowerCase().includes('soe') ? '/assets/aistudio/2026_61815f0c.pdf' : (adv.fileType === 'pdf' ? '/assets/aistudio/2026_61815f0c.pdf' : null));
-    const effectiveAdv: OfficialAdvisory = pdfTargetUrl && !adv.fileUrl ? { ...adv, fileUrl: pdfTargetUrl } : adv;
+    const att = resolveAdvisoryAttachment(adv);
+    const fileUrl = att.fileUrl || adv.fileUrl;
+    const fileName = att.fileName || adv.fileName;
+    const isPdf =
+      att.fileType === 'pdf' ||
+      adv.fileType === 'pdf' ||
+      Boolean(
+        fileUrl &&
+          (fileUrl.toLowerCase().endsWith('.pdf') ||
+            fileUrl.includes('.pdf') ||
+            fileUrl.startsWith('data:application/pdf'))
+      ) ||
+      Boolean(fileName && fileName.toLowerCase().endsWith('.pdf'));
+
+    const effectiveAdv: OfficialAdvisory = {
+      ...adv,
+      fileUrl: fileUrl || undefined,
+      fileType: isPdf ? 'pdf' : (att.fileType || adv.fileType || 'image'),
+      fileName: fileName || (isPdf ? 'SOE Belize.pdf' : 'advisory_bulletin.jpg'),
+    };
 
     return (
       <div
@@ -405,9 +425,9 @@ export const TopAdvisoryBanner: React.FC = () => {
 
           {/* Right Column: Attachment & Actions */}
           <div className="shrink-0 flex items-center gap-2 self-start md:self-center">
-            {(pdfTargetUrl || adv.fileName) && (
+            {(fileUrl || fileName) && (
               <div className="flex items-center gap-2 bg-[#121c2e] p-2.5 rounded-xl border border-[#233555] shadow-sm">
-                {adv.fileType === 'pdf' || (adv.fileName && adv.fileName.toLowerCase().endsWith('.pdf')) ? (
+                {isPdf ? (
                   <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded-lg bg-red-950/60 border border-red-500/40 flex items-center justify-center text-red-400">
                       <FileText className="w-5 h-5" />
@@ -415,10 +435,10 @@ export const TopAdvisoryBanner: React.FC = () => {
                     <div className="text-left pr-2">
                       <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider block">Official PDF</span>
                       <span className="text-xs font-bold text-white max-w-[130px] truncate block">
-                        {adv.fileName || 'Bulletin.pdf'}
+                        {effectiveAdv.fileName}
                       </span>
                     </div>
-                    {pdfTargetUrl && (
+                    {fileUrl && (
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
@@ -430,7 +450,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                           <span>View PDF</span>
                         </button>
                         <a
-                          href={pdfTargetUrl}
+                          href={fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-2.5 py-1.5 rounded-lg bg-[#14233c] hover:bg-[#1d3356] text-[#d4af37] border border-[#27406b] text-xs font-bold transition flex items-center gap-1 shadow-sm"
@@ -440,8 +460,8 @@ export const TopAdvisoryBanner: React.FC = () => {
                           <span>Open File</span>
                         </a>
                         <a
-                          href={pdfTargetUrl}
-                          download={adv.fileName || 'advisory.pdf'}
+                          href={fileUrl}
+                          download={effectiveAdv.fileName || 'advisory.pdf'}
                           className="p-1.5 rounded-lg bg-[#14233c] hover:bg-[#1d3356] text-slate-300 hover:text-white border border-[#27406b] transition"
                           title="Download PDF"
                         >
@@ -452,14 +472,14 @@ export const TopAdvisoryBanner: React.FC = () => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    {adv.fileUrl ? (
+                    {fileUrl ? (
                       <div
-                        onClick={() => setViewingFileAdvisory(adv)}
+                        onClick={() => setViewingFileAdvisory(effectiveAdv)}
                         className="relative w-11 h-11 rounded-lg overflow-hidden border border-[#2e456e] cursor-pointer group"
                       >
                         <img
-                          src={adv.fileUrl}
-                          alt={adv.title}
+                          src={fileUrl}
+                          alt={effectiveAdv.fileName || adv.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition"
                         />
                         <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition flex items-center justify-center">
@@ -474,13 +494,13 @@ export const TopAdvisoryBanner: React.FC = () => {
                     <div className="text-left pr-1">
                       <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider block">Image Bulletin</span>
                       <span className="text-xs font-bold text-white max-w-[110px] truncate block">
-                        {adv.fileName || 'Bulletin.jpg'}
+                        {effectiveAdv.fileName}
                       </span>
                     </div>
-                    {adv.fileUrl && (
+                    {fileUrl && (
                       <button
                         type="button"
-                        onClick={() => setViewingFileAdvisory(adv)}
+                        onClick={() => setViewingFileAdvisory(effectiveAdv)}
                         className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -648,104 +668,119 @@ export const TopAdvisoryBanner: React.FC = () => {
       )}
 
       {/* MODAL 1: VIEW FULL-SIZE IMAGE OR EMBEDDED PDF */}
-      {viewingFileAdvisory && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
-          <div className="bg-[#0b1220] border-2 border-[#1e2e4a] rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl text-slate-100">
-            {/* Modal Header */}
-            <div className="p-4 bg-[#080d18] border-b border-[#1e2e4a] flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                {viewingFileAdvisory.fileType === 'pdf' ? (
-                  <FileText className="w-5 h-5 text-red-400 shrink-0" />
+      {viewingFileAdvisory && (() => {
+        const isModalPdf =
+          viewingFileAdvisory.fileType === 'pdf' ||
+          Boolean(
+            viewingFileAdvisory.fileUrl &&
+              (viewingFileAdvisory.fileUrl.toLowerCase().endsWith('.pdf') ||
+                viewingFileAdvisory.fileUrl.includes('.pdf') ||
+                viewingFileAdvisory.fileUrl.startsWith('data:application/pdf'))
+          ) ||
+          Boolean(
+            viewingFileAdvisory.fileName &&
+              viewingFileAdvisory.fileName.toLowerCase().endsWith('.pdf')
+          );
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+            <div className="bg-[#0b1220] border-2 border-[#1e2e4a] rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl text-slate-100">
+              {/* Modal Header */}
+              <div className="p-4 bg-[#080d18] border-b border-[#1e2e4a] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {isModalPdf ? (
+                    <FileText className="w-5 h-5 text-red-400 shrink-0" />
+                  ) : (
+                    <ImageIcon className="w-5 h-5 text-amber-400 shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <h4 className="font-black text-sm text-white truncate">
+                      {viewingFileAdvisory.title}
+                    </h4>
+                    <p className="text-[11px] text-[#f3c853] font-mono truncate">
+                      {viewingFileAdvisory.fileName || (isModalPdf ? 'SOE Belize.pdf' : 'Official Attachment')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {viewingFileAdvisory.fileUrl && (
+                    <a
+                      href={viewingFileAdvisory.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-xl bg-[#1e2e4a] hover:bg-[#283e65] text-amber-300 border border-amber-400/30 text-xs font-bold transition flex items-center gap-1.5"
+                      title="Open PDF File directly in new tab"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span className="hidden sm:inline">Open File</span>
+                    </a>
+                  )}
+                  {viewingFileAdvisory.fileUrl && (
+                    <a
+                      href={viewingFileAdvisory.fileUrl}
+                      download={viewingFileAdvisory.fileName || (isModalPdf ? 'SOE Belize.pdf' : 'belize_advisory')}
+                      className="p-2 rounded-xl bg-[#121c2e] hover:bg-[#1c2c46] text-slate-200 border border-[#233555] text-xs font-bold transition flex items-center gap-1.5"
+                      title="Download File"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="hidden sm:inline">Download</span>
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setViewingFileAdvisory(null)}
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-4 flex-1 overflow-auto flex items-center justify-center bg-black/60 min-h-[350px]">
+                {isModalPdf ? (
+                  <div className="w-full h-[65vh] flex flex-col items-center">
+                    <object
+                      data={viewingFileAdvisory.fileUrl}
+                      type="application/pdf"
+                      className="w-full h-full rounded-xl border border-slate-700 bg-white"
+                    >
+                      <div className="p-6 text-center space-y-3 bg-[#121c2e] rounded-2xl border border-[#233555] max-w-md mx-auto my-auto">
+                        <FileText className="w-12 h-12 text-red-400 mx-auto" />
+                        <p className="text-sm font-bold text-white">
+                          PDF preview cannot be embedded directly in your mobile browser.
+                        </p>
+                        <a
+                          href={viewingFileAdvisory.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#d4af37] text-slate-950 font-black text-xs shadow hover:bg-amber-300 transition"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Open PDF Document
+                        </a>
+                      </div>
+                    </object>
+                  </div>
                 ) : (
-                  <ImageIcon className="w-5 h-5 text-amber-400 shrink-0" />
+                  <img
+                    src={viewingFileAdvisory.fileUrl}
+                    alt={viewingFileAdvisory.title}
+                    className="max-h-[70vh] w-auto object-contain rounded-xl shadow-2xl border border-white/20"
+                  />
                 )}
-                <div className="min-w-0">
-                  <h4 className="font-black text-sm text-white truncate">
-                    {viewingFileAdvisory.title}
-                  </h4>
-                  <p className="text-[11px] text-[#f3c853] font-mono truncate">
-                    {viewingFileAdvisory.fileName || 'Official Attachment'}
-                  </p>
-                </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                {viewingFileAdvisory.fileUrl && (
-                  <a
-                    href={viewingFileAdvisory.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-xl bg-[#1e2e4a] hover:bg-[#283e65] text-amber-300 border border-amber-400/30 text-xs font-bold transition flex items-center gap-1.5"
-                    title="Open PDF File directly in new tab"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    <span className="hidden sm:inline">Open File</span>
-                  </a>
-                )}
-                {viewingFileAdvisory.fileUrl && (
-                  <a
-                    href={viewingFileAdvisory.fileUrl}
-                    download={viewingFileAdvisory.fileName || 'belize_advisory'}
-                    className="p-2 rounded-xl bg-[#121c2e] hover:bg-[#1c2c46] text-slate-200 border border-[#233555] text-xs font-bold transition flex items-center gap-1.5"
-                    title="Download File"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span className="hidden sm:inline">Download</span>
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setViewingFileAdvisory(null)}
-                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+              {/* Modal Footer Description */}
+              <div className="p-3 bg-[#080d18] border-t border-[#1e2e4a] text-xs text-slate-300">
+                <span className="font-bold text-[#f3c853]">Summary: </span>
+                {viewingFileAdvisory.summary}
               </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-4 flex-1 overflow-auto flex items-center justify-center bg-black/60 min-h-[350px]">
-              {viewingFileAdvisory.fileType === 'pdf' ? (
-                <div className="w-full h-[65vh] flex flex-col items-center">
-                  <object
-                    data={viewingFileAdvisory.fileUrl}
-                    type="application/pdf"
-                    className="w-full h-full rounded-xl border border-slate-700 bg-white"
-                  >
-                    <div className="p-6 text-center space-y-3 bg-[#121c2e] rounded-2xl border border-[#233555] max-w-md mx-auto my-auto">
-                      <FileText className="w-12 h-12 text-red-400 mx-auto" />
-                      <p className="text-sm font-bold text-white">
-                        PDF preview cannot be embedded directly in your mobile browser.
-                      </p>
-                      <a
-                        href={viewingFileAdvisory.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#d4af37] text-slate-950 font-black text-xs shadow hover:bg-amber-300 transition"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Open PDF Document
-                      </a>
-                    </div>
-                  </object>
-                </div>
-              ) : (
-                <img
-                  src={viewingFileAdvisory.fileUrl}
-                  alt={viewingFileAdvisory.title}
-                  className="max-h-[70vh] w-auto object-contain rounded-xl shadow-2xl border border-white/20"
-                />
-              )}
-            </div>
-
-            {/* Modal Footer Description */}
-            <div className="p-3 bg-[#080d18] border-t border-[#1e2e4a] text-xs text-slate-300">
-              <span className="font-bold text-[#f3c853]">Summary: </span>
-              {viewingFileAdvisory.summary}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* MODAL 2: CONFIRM ADVISORY DELETION */}
       {deletingAdvisory && (

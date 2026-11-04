@@ -122,15 +122,57 @@ export const OFFICIAL_SOE_ADVISORY: OfficialAdvisory = {
   },
 };
 
+export function resolveAdvisoryAttachment(adv: Partial<OfficialAdvisory>): {
+  fileUrl?: string;
+  fileType?: 'pdf' | 'image';
+  fileName?: string;
+} {
+  let fileUrl = adv.fileUrl;
+  let fileName = adv.fileName;
+  let fileType = adv.fileType;
+
+  const isSoe =
+    adv.id === 'adv_1793751515155_u8s4i' ||
+    (adv.title && /state\s*of\s*emergency|soe/i.test(adv.title)) ||
+    (fileName && /soe/i.test(fileName));
+
+  if (isSoe) {
+    if (!fileUrl) fileUrl = '/assets/aistudio/2026_61815f0c.pdf';
+    if (!fileName) fileName = 'SOE Belize.pdf';
+    fileType = 'pdf';
+  }
+
+  if (fileUrl) {
+    const lowerUrl = fileUrl.toLowerCase();
+    const lowerName = (fileName || '').toLowerCase();
+    if (
+      lowerUrl.endsWith('.pdf') ||
+      lowerUrl.includes('.pdf') ||
+      lowerUrl.startsWith('data:application/pdf') ||
+      lowerName.endsWith('.pdf') ||
+      fileType === 'pdf'
+    ) {
+      fileType = 'pdf';
+      if (!fileName) fileName = isSoe ? 'SOE Belize.pdf' : 'Official_Advisory_Bulletin.pdf';
+    } else if (
+      lowerUrl.startsWith('data:image/') ||
+      lowerUrl.endsWith('.jpg') ||
+      lowerUrl.endsWith('.jpeg') ||
+      lowerUrl.endsWith('.png') ||
+      lowerUrl.endsWith('.webp') ||
+      lowerName.match(/\.(jpg|jpeg|png|webp)$/) ||
+      fileType === 'image'
+    ) {
+      fileType = 'image';
+      if (!fileName) fileName = 'Bulletin_Attachment.jpg';
+    }
+  }
+
+  return { fileUrl, fileType, fileName };
+}
+
 export function resolveAdvisoryFileUrl(adv: OfficialAdvisory): string | undefined {
-  if (adv.fileUrl) return adv.fileUrl;
-  if (adv.fileName && adv.fileName.toLowerCase().includes('soe')) {
-    return '/assets/aistudio/2026_61815f0c.pdf';
-  }
-  if (adv.id === 'adv_1793751515155_u8s4i') {
-    return '/assets/aistudio/2026_61815f0c.pdf';
-  }
-  return undefined;
+  return resolveAdvisoryAttachment(adv).fileUrl;
 }
 
 const AdvisoryContext = createContext<AdvisoryContextType | undefined>(undefined);
@@ -188,8 +230,14 @@ function getCachedAdvisories(): OfficialAdvisory[] {
       if (Array.isArray(parsed) && parsed.length > 0) {
         parsed.forEach((a: OfficialAdvisory) => {
           if (a && a.id && !deletedIds.has(a.id)) {
-            const resolvedFileUrl = a.fileUrl || resolveAdvisoryFileUrl(a);
-            map.set(a.id, resolvedFileUrl ? { ...a, fileUrl: resolvedFileUrl } : a);
+            const att = resolveAdvisoryAttachment(a);
+            const enriched: OfficialAdvisory = {
+              ...a,
+              ...(att.fileUrl ? { fileUrl: att.fileUrl } : {}),
+              ...(att.fileType ? { fileType: att.fileType } : {}),
+              ...(att.fileName ? { fileName: att.fileName } : {}),
+            };
+            map.set(a.id, enriched);
           }
         });
       }
@@ -230,8 +278,14 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             const data = d.data() as OfficialAdvisory;
             if (!deletedIds.has(d.id)) {
               const item = { ...data, id: d.id };
-              const resolved = item.fileUrl || resolveAdvisoryFileUrl(item);
-              remoteList.push(resolved ? { ...item, fileUrl: resolved } : item);
+              const att = resolveAdvisoryAttachment(item);
+              const enriched: OfficialAdvisory = {
+                ...item,
+                ...(att.fileUrl ? { fileUrl: att.fileUrl } : {}),
+                ...(att.fileType ? { fileType: att.fileType } : {}),
+                ...(att.fileName ? { fileName: att.fileName } : {}),
+              };
+              remoteList.push(enriched);
             }
           });
 
@@ -467,18 +521,24 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
 
-    // Handle file changes: explicit null means removed, non-null means updated/retained
+    // Handle file changes: explicit null with empty fileName means removed, non-null means updated/retained
     if (updates.fileUrl !== undefined) {
       if (updates.fileUrl) {
         merged.fileUrl = updates.fileUrl;
-        merged.fileType = updates.fileType || 'pdf';
-        merged.fileName = updates.fileName || 'Official_Advisory_Bulletin.pdf';
-      } else {
+        merged.fileType = updates.fileType || (updates.fileUrl.includes('.pdf') ? 'pdf' : 'image');
+        merged.fileName = updates.fileName || (merged.fileType === 'pdf' ? 'Official_Advisory_Bulletin.pdf' : 'advisory_image.jpg');
+      } else if (updates.fileUrl === null && (updates.fileName === null || updates.fileName === '')) {
         delete (merged as any).fileUrl;
         delete (merged as any).fileType;
         delete (merged as any).fileName;
       }
     }
+
+    // Resolve and safeguard attachment metadata so official documents are never corrupted
+    const resolvedAtt = resolveAdvisoryAttachment(merged);
+    if (resolvedAtt.fileUrl) merged.fileUrl = resolvedAtt.fileUrl;
+    if (resolvedAtt.fileType) merged.fileType = resolvedAtt.fileType;
+    if (resolvedAtt.fileName) merged.fileName = resolvedAtt.fileName;
 
     if (updates.channels !== undefined) {
       merged.channels = updates.channels;
