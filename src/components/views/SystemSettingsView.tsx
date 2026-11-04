@@ -209,21 +209,33 @@ export const SystemSettingsView: React.FC = () => {
               <span>National Meteorological Service of Belize</span>
             </h4>
             <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-              Synced Live
+              Daily Synced
             </span>
           </div>
           <p className="text-[11px] text-slate-300 leading-relaxed">
-            Direct feed authorized under Chief Meteorologist Ronald Gordon. Synchronizes real-time marine weather, tropical outlooks, and localized rainfall alerts from <strong className="text-white">nms.gov.bz</strong>.
+            Direct feed authorized under Chief Meteorologist Ronald Gordon. Synchronizes real-time 24-hour weather, marine outlooks, temperatures, and localized rainfall alerts daily directly from <strong className="text-white">nms.gov.bz/forecast/general-weather-forecast/</strong> (thrice-daily forecast cycles: 6:00 AM, 12:00 PM, 6:00 PM).
           </p>
-          <a
-            href="https://nms.gov.bz/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] text-[#d4af37] hover:underline font-bold inline-flex items-center gap-1 mt-1"
-          >
-            <span>Visit Official NMS Portal</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
+          <div className="flex items-center gap-3 pt-1">
+            <a
+              href="https://nms.gov.bz/forecast/general-weather-forecast/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-cyan-400 hover:underline font-bold inline-flex items-center gap-1"
+            >
+              <span>General Weather Forecast Portal</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <span className="text-slate-600">•</span>
+            <a
+              href="https://nms.gov.bz/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-[#d4af37] hover:underline font-bold inline-flex items-center gap-1"
+            >
+              <span>Main NMS Portal</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
         </div>
 
         <div className="bg-[#0b1220] p-4 rounded-2xl border border-[#1e2e4a] space-y-2">

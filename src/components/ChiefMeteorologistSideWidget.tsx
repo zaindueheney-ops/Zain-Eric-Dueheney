@@ -1,25 +1,26 @@
 // Source: National Meteorological Service of Belize (NMS) - https://nms.gov.bz/
+// Synced Daily with https://nms.gov.bz/forecast/general-weather-forecast/
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   CloudSun,
   Thermometer,
   Waves,
-  Wind,
   ExternalLink,
   ChevronRight,
-  ShieldCheck,
   RefreshCw,
-  Sparkles
+  Radio
 } from 'lucide-react';
 import { NmsChiefMeteorologistModal } from './NmsChiefMeteorologistModal';
 import {
-  fetchNmsGeneralForecast,
-  fetchNmsMarineForecast,
+  syncDailyNmsWeather,
+  getCachedGeneralForecast,
+  getCachedMarineForecast,
+  getNmsSyncMeta,
   CHIEF_METEOROLOGIST_INFO,
   NmsGeneralForecast,
   NmsMarineForecast,
-  FALLBACK_NMS_GENERAL_FORECAST,
-  FALLBACK_NMS_MARINE_FORECAST
+  NmsSyncMeta,
+  NMS_OFFICIAL_URLS
 } from '../services/nmsWeatherService';
 
 interface ChiefMeteorologistSideWidgetProps {
@@ -30,25 +31,24 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
   variant = 'card'
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [generalForecast, setGeneralForecast] = useState<NmsGeneralForecast>(
-    FALLBACK_NMS_GENERAL_FORECAST
+  const [generalForecast, setGeneralForecast] = useState<NmsGeneralForecast>(() =>
+    getCachedGeneralForecast()
   );
-  const [marineForecast, setMarineForecast] = useState<NmsMarineForecast>(
-    FALLBACK_NMS_MARINE_FORECAST
+  const [marineForecast, setMarineForecast] = useState<NmsMarineForecast>(() =>
+    getCachedMarineForecast()
   );
-  const [isLive, setIsLive] = useState(false);
+  const [syncMeta, setSyncMeta] = useState<NmsSyncMeta>(() => getNmsSyncMeta());
+  const [isLive, setIsLive] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const [genResult, marResult] = await Promise.all([
-        fetchNmsGeneralForecast(),
-        fetchNmsMarineForecast()
-      ]);
-      setGeneralForecast(genResult.data);
-      setMarineForecast(marResult.data);
-      setIsLive(genResult.isLive || marResult.isLive);
+      const res = await syncDailyNmsWeather();
+      setGeneralForecast(res.general);
+      setMarineForecast(res.marine);
+      setSyncMeta(res.syncMeta);
+      setIsLive(res.syncMeta.isLive);
     } catch (err) {
       console.warn('Chief Meteorologist Desk sync notice (using cached data):', err);
     } finally {
@@ -56,8 +56,35 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
     }
   }, []);
 
+  // Initial load + periodic daily re-sync every 15 minutes + window focus check
   useEffect(() => {
     loadData();
+
+    // Check periodically for thrice-daily forecast updates (6am, 12pm, 6pm)
+    const interval = setInterval(() => {
+      loadData();
+    }, 15 * 60 * 1000);
+
+    const onFocus = () => {
+      loadData();
+    };
+    window.addEventListener('focus', onFocus);
+
+    const onSyncEvent = (e: any) => {
+      if (e.detail?.general) setGeneralForecast(e.detail.general);
+      if (e.detail?.marine) setMarineForecast(e.detail.marine);
+      if (e.detail?.syncMeta) {
+        setSyncMeta(e.detail.syncMeta);
+        setIsLive(e.detail.syncMeta.isLive);
+      }
+    };
+    window.addEventListener('nms-daily-weather-synced', onSyncEvent);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('nms-daily-weather-synced', onSyncEvent);
+    };
   }, [loadData]);
 
   // Floating Side Tab variant (fixed to right margin)
@@ -69,7 +96,7 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
             type="button"
             onClick={() => setIsModalOpen(true)}
             className="group flex items-center gap-2 px-3 py-2.5 rounded-l-2xl bg-gradient-to-l from-[#0c1a30] via-[#091529] to-[#060f1e] border-y border-l border-cyan-500/50 hover:border-cyan-400 text-white shadow-2xl shadow-cyan-950/80 transition-all duration-300 hover:-translate-x-1 hover:shadow-cyan-500/20"
-            title="Chief Meteorologist Weather & Marine Desk • Ronald Gordon (NMS)"
+            title="Chief Meteorologist Weather & Marine Desk • Ronald Gordon (NMS) • Daily Synced"
           >
             <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center shrink-0 group-hover:scale-110 transition">
               <CloudSun className="w-4 h-4 text-cyan-300" />
@@ -83,7 +110,7 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
               </div>
               <div className="text-xs font-bold text-white">Chief Met Desk</div>
               <div className="text-[10px] text-slate-300 font-mono">
-                {generalForecast.coast_high_f || 87}°F • Sea: {generalForecast.sea_state_m2m?.[0] || 'Moderate'}
+                {generalForecast.coast_high_f || 88}°F • Sea: {generalForecast.sea_state_m2m?.[0] || 'Slight'}
               </div>
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-cyan-400 group-hover:translate-x-0.5 transition" />
@@ -98,6 +125,7 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
           isLive={isLive}
           onRefresh={loadData}
           isRefreshing={isRefreshing}
+          syncMeta={syncMeta}
         />
       </>
     );
@@ -113,7 +141,7 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0d182b] hover:bg-[#152542] text-cyan-200 hover:text-white border border-cyan-500/40 text-xs font-bold transition shadow-sm"
         >
           <CloudSun className="w-4 h-4 text-cyan-400" />
-          <span>Chief Met Desk ({generalForecast.coast_high_f || 87}°F)</span>
+          <span>Chief Met Desk ({generalForecast.coast_high_f || 88}°F)</span>
         </button>
 
         <NmsChiefMeteorologistModal
@@ -124,6 +152,7 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
           isLive={isLive}
           onRefresh={loadData}
           isRefreshing={isRefreshing}
+          syncMeta={syncMeta}
         />
       </>
     );
@@ -145,8 +174,8 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
                   NMS Belize
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[9px] text-emerald-400 font-bold uppercase">
-                  {isLive ? 'Live Sync' : 'Active'}
+                <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                  Daily Synced
                 </span>
               </div>
               <h4 className="text-xs sm:text-sm font-black text-white leading-tight">
@@ -155,26 +184,42 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
             </div>
           </div>
 
-          <a
-            href="https://nms.gov.bz/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
-            title="Open Official National Meteorological Service Portal (nms.gov.bz)"
-          >
-            <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
-          </a>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={loadData}
+              disabled={isRefreshing}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-white/10 transition"
+              title="Synchronize now with nms.gov.bz"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
+            </button>
+            <a
+              href={NMS_OFFICIAL_URLS.generalForecast}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+              title="Open Official NMS General Weather Forecast (nms.gov.bz/forecast/general-weather-forecast/)"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+            </a>
+          </div>
         </div>
 
-        {/* Lead Officer Info */}
+        {/* Lead Officer Info & Daily Schedule */}
         <div className="bg-[#060c17]/80 p-2.5 rounded-xl border border-[#172744] space-y-1 text-xs">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-slate-400">Chief Officer:</span>
             <span className="font-bold text-[#f3c853]">{CHIEF_METEOROLOGIST_INFO.name}</span>
           </div>
           <div className="flex items-center justify-between text-[10px] text-slate-400">
-            <span>Forecast Schedule:</span>
-            <span className="text-slate-300 font-mono">{generalForecast.forecast_time || '6:00 AM / 12:00 PM'}</span>
+            <span>Forecast Date:</span>
+            <span className="text-emerald-400 font-mono font-bold">
+              {generalForecast.forecast_date} • {generalForecast.forecast_category || 'Morning'}
+            </span>
+          </div>
+          <div className="pt-0.5 text-[9px] text-cyan-300 truncate font-mono">
+            Direct Feed: {NMS_OFFICIAL_URLS.generalForecast}
           </div>
         </div>
 
@@ -184,7 +229,7 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
             <Thermometer className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <div className="truncate">
               <span className="text-slate-400 block text-[9px] uppercase font-bold">Coast Temp</span>
-              <span className="font-black text-white font-mono">{generalForecast.coast_high_f || 87}°F</span>
+              <span className="font-black text-white font-mono">{generalForecast.coast_high_f || 88}°F / {generalForecast.coast_high_c || 31}°C</span>
             </div>
           </div>
 
@@ -192,7 +237,7 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
             <Waves className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <div className="truncate">
               <span className="text-slate-400 block text-[9px] uppercase font-bold">Sea State</span>
-              <span className="font-black text-white font-mono">{generalForecast.sea_state_m2m?.[0] || 'Moderate'}</span>
+              <span className="font-black text-white font-mono">{generalForecast.sea_state_m2m?.[0] || 'Slight'} ({generalForecast.wave || '1-3 ft'})</span>
             </div>
           </div>
         </div>
@@ -216,6 +261,7 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
         isLive={isLive}
         onRefresh={loadData}
         isRefreshing={isRefreshing}
+        syncMeta={syncMeta}
       />
     </>
   );

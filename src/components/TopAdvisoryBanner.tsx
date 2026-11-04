@@ -977,7 +977,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                   type="url"
                   value={newPublicationUrl}
                   onChange={(e) => setNewPublicationUrl(e.target.value)}
-                  placeholder="e.g. https://nms.gov.bz/weather-forecast/ or official government publication"
+                  placeholder="e.g. https://nms.gov.bz/forecast/general-weather-forecast/ or official government publication"
                   className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
@@ -1190,7 +1190,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                   type="url"
                   value={editPublicationUrl}
                   onChange={(e) => setEditPublicationUrl(e.target.value)}
-                  placeholder="e.g. https://nms.gov.bz/weather-forecast/ or official government portal"
+                  placeholder="e.g. https://nms.gov.bz/forecast/general-weather-forecast/ or official government portal"
                   className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>

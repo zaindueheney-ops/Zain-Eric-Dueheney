@@ -995,7 +995,7 @@ export const EmergencyAlertsView: React.FC = () => {
                   type="url"
                   value={publicationUrl}
                   onChange={(e) => setPublicationUrl(e.target.value)}
-                  placeholder="e.g. https://nms.gov.bz/weather-forecast/ or https://nemo.gov.bz/bulletin-2026"
+                  placeholder="e.g. https://nms.gov.bz/forecast/general-weather-forecast/ or https://nemo.gov.bz/bulletin-2026"
                   className="w-full bg-[#0b1220] border border-[#233555] rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#d4af37]"
                 />
                 <p className="text-[10px] text-slate-400">
@@ -1444,7 +1444,7 @@ export const EmergencyAlertsView: React.FC = () => {
                   type="url"
                   value={editPublicationUrl}
                   onChange={(e) => setEditPublicationUrl(e.target.value)}
-                  placeholder="e.g. https://nms.gov.bz/weather-forecast/ or official government publication"
+                  placeholder="e.g. https://nms.gov.bz/forecast/general-weather-forecast/ or official government publication"
                   className="w-full bg-[#0b1220] border border-[#233555] rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>

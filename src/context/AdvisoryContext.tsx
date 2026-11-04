@@ -69,20 +69,23 @@ interface AdvisoryContextType {
 
 const LOCAL_STORAGE_ADVISORIES_KEY = 'belize_alerts_official_advisories';
 
-const DEFAULT_SAMPLE_ADVISORY: OfficialAdvisory = {
+export const DEFAULT_SAMPLE_ADVISORY: OfficialAdvisory = {
   id: 'official_belize_advisory_initial',
   title: 'National Meteorological Service of Belize: General Weather Forecast & Outlook',
   urgencyLevel: 'advisory',
   district: 'all',
   summary:
-    'A gentle and relatively moist airflow prevails across Belize. Sunny with cloudy spells today and cloudy at times tonight. A few showers and isolated thunderstorms mainly coastal and offshore this morning, central and southern inland this afternoon. Outlook: Cloudy spells with a few morning showers decreasing by afternoon. Official Source: National Meteorological Service of Belize (https://nms.gov.bz/).',
+    'MAINLY FAIR WEATHER CONDITIONS PREVAIL OVER THE AREA.\n\n24-Hour Forecast: SUNNY WITH A FEW CLOUDY SPELLS TODAY AND PARTLY CLOUDY SKIES TONIGHT. SHOWERS WILL BE GENERALLY ISOLATED.\n\nOutlook: (THURSDAY & THURSDAY NIGHT)- IS FOR FAIR AND MOSTLY DRY CONDITIONS. SHOWERS, IF ANY, WILL BE ISOLATED.\n\nOfficial Source: National Meteorological Service of Belize (https://nms.gov.bz/forecast/general-weather-forecast/).',
   safetyInstructions:
-    'Small crafts should exercise caution in offshore waters. Motorists are advised to maintain safe following distance on slick highways.',
+    'Small crafts and marine vessels should observe slight sea states (1-3 ft waves, 5-10 kts wind). Motorists are advised to stay attentive during isolated coastal showers.',
   issuingAuthority: 'National Meteorological Service of Belize (NMS) • Chief Meteorologist Ronald Gordon',
-  publicationUrl: 'https://nms.gov.bz/',
+  publicationUrl: 'https://nms.gov.bz/forecast/general-weather-forecast/',
+  fileUrl: 'https://wimp3.nms.gov.bz/media/forecast/general/doc/General_Forecast_2026-11-04_0600_AM_NMS_BZ.pdf',
+  fileName: 'General_Forecast_2026-11-04_0600_AM_NMS_BZ.pdf',
+  fileType: 'pdf',
   publishedBy: 'Mr. Ronald Gordon, Chief Meteorologist (NMS • https://nms.gov.bz/)',
   publisherEmail: 'chief@nms.gov.bz',
-  publishedAt: new Date().toISOString(),
+  publishedAt: '2026-11-04T06:00:00.000Z',
   active: true,
   channels: {
     inApp: true,
@@ -341,6 +344,44 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setAdvisories(cached);
       setLoading(false);
     }
+  }, []);
+
+  // Synchronize official weather advisory whenever NMS daily weather sync fires
+  useEffect(() => {
+    const handleWeatherSynced = (e: any) => {
+      const general = e.detail?.general;
+      if (!general) return;
+
+      const deletedIds = getDeletedAdvisoryIds();
+      if (deletedIds.has(DEFAULT_SAMPLE_ADVISORY.id)) return;
+
+      const syncedSummary = `${general.general_situation || 'MAINLY FAIR WEATHER CONDITIONS PREVAIL OVER THE AREA.'}\n\n24-Hour Forecast: ${general.twenty_four_hour_forecast || ''}\n\nOutlook: ${general.outlook || ''}\n\nOfficial Source: National Meteorological Service of Belize (https://nms.gov.bz/forecast/general-weather-forecast/).`;
+
+      setAdvisories((prev) => {
+        const idx = prev.findIndex((a) => a.id === DEFAULT_SAMPLE_ADVISORY.id);
+        const updatedItem: OfficialAdvisory = {
+          ...(idx >= 0 ? prev[idx] : DEFAULT_SAMPLE_ADVISORY),
+          title: `National Meteorological Service of Belize: General Weather Forecast & Outlook (${general.forecast_date || 'Today'})`,
+          summary: syncedSummary,
+          publicationUrl: 'https://nms.gov.bz/forecast/general-weather-forecast/',
+          fileUrl: general.pdf_file ? (general.pdf_file.startsWith('http') ? general.pdf_file : `https://wimp3.nms.gov.bz${general.pdf_file}`) : undefined,
+          fileName: `General_Forecast_${general.forecast_date || 'NMS'}.pdf`,
+          fileType: 'pdf',
+          publishedAt: general.updated_datetime || new Date().toISOString(),
+          active: true,
+        };
+
+        const next =
+          idx >= 0
+            ? [...prev.slice(0, idx), updatedItem, ...prev.slice(idx + 1)]
+            : [updatedItem, ...prev];
+        saveCachedAdvisories(next);
+        return next;
+      });
+    };
+
+    window.addEventListener('nms-daily-weather-synced', handleWeatherSynced);
+    return () => window.removeEventListener('nms-daily-weather-synced', handleWeatherSynced);
   }, []);
 
   const addAdvisory = async (advisoryData: {
