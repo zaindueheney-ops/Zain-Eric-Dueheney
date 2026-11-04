@@ -105,6 +105,7 @@ export const OFFICIAL_SOE_ADVISORY: OfficialAdvisory = {
     'All citizens are urged to cooperate fully with law enforcement, civil defense personnel, and NEMO authorities. Exercise caution, heed official security directives, and report any emergency incidents promptly.',
   issuingAuthority: 'Government of Belize & National Emergency Operations Centre (NEMO)',
   publicationUrl: 'https://www.facebook.com/photo/?fbid=1541825884638642&set=pcb.1541827211305176',
+  fileUrl: '/assets/aistudio/2026_61815f0c.pdf',
   fileName: 'SOE Belize.pdf',
   fileType: 'pdf',
   publishedBy: 'Mr. Zain Dueheney (Super Administrator)',
@@ -120,6 +121,17 @@ export const OFFICIAL_SOE_ADVISORY: OfficialAdvisory = {
     schools: true,
   },
 };
+
+export function resolveAdvisoryFileUrl(adv: OfficialAdvisory): string | undefined {
+  if (adv.fileUrl) return adv.fileUrl;
+  if (adv.fileName && adv.fileName.toLowerCase().includes('soe')) {
+    return '/assets/aistudio/2026_61815f0c.pdf';
+  }
+  if (adv.id === 'adv_1793751515155_u8s4i') {
+    return '/assets/aistudio/2026_61815f0c.pdf';
+  }
+  return undefined;
+}
 
 const AdvisoryContext = createContext<AdvisoryContextType | undefined>(undefined);
 
@@ -176,7 +188,8 @@ function getCachedAdvisories(): OfficialAdvisory[] {
       if (Array.isArray(parsed) && parsed.length > 0) {
         parsed.forEach((a: OfficialAdvisory) => {
           if (a && a.id && !deletedIds.has(a.id)) {
-            map.set(a.id, a);
+            const resolvedFileUrl = a.fileUrl || resolveAdvisoryFileUrl(a);
+            map.set(a.id, resolvedFileUrl ? { ...a, fileUrl: resolvedFileUrl } : a);
           }
         });
       }
@@ -216,7 +229,9 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           snapshot.forEach((d) => {
             const data = d.data() as OfficialAdvisory;
             if (!deletedIds.has(d.id)) {
-              remoteList.push({ ...data, id: d.id });
+              const item = { ...data, id: d.id };
+              const resolved = item.fileUrl || resolveAdvisoryFileUrl(item);
+              remoteList.push(resolved ? { ...item, fileUrl: resolved } : item);
             }
           });
 

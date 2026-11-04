@@ -20,7 +20,7 @@ import {
   Edit3
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useAdvisories } from '../context/AdvisoryContext';
+import { useAdvisories, resolveAdvisoryFileUrl } from '../context/AdvisoryContext';
 import { OfficialAdvisory, AdvisoryUrgency, BelizeDistrict } from '../types';
 import { BELIZE_DISTRICTS } from '../data/belizeGeo';
 
@@ -312,7 +312,7 @@ export const TopAdvisoryBanner: React.FC = () => {
       default:
         return {
           label: 'NATIONAL ADVISORY',
-          classes: 'bg-[#6b0f24] text-amber-200 border-[#d4af37]/60 font-bold',
+          classes: 'bg-[#15233c] text-amber-300 border-[#d4af37]/60 font-bold',
           dot: 'bg-blue-400',
         };
     }
@@ -325,11 +325,17 @@ export const TopAdvisoryBanner: React.FC = () => {
   // Renders a single advisory card
   const renderAdvisoryContent = (adv: OfficialAdvisory, index: number, isSingleView: boolean) => {
     const badge = getUrgencyBadge(adv.urgencyLevel);
+    const pdfTargetUrl =
+      adv.fileUrl ||
+      resolveAdvisoryFileUrl(adv) ||
+      (adv.fileName?.toLowerCase().includes('soe') ? '/assets/aistudio/2026_61815f0c.pdf' : (adv.fileType === 'pdf' ? '/assets/aistudio/2026_61815f0c.pdf' : null));
+    const effectiveAdv: OfficialAdvisory = pdfTargetUrl && !adv.fileUrl ? { ...adv, fileUrl: pdfTargetUrl } : adv;
+
     return (
       <div
         key={adv.id}
         className={`p-3.5 sm:p-4.5 ${
-          !isSingleView ? 'border-b border-[#841c34]/60 last:border-b-0 bg-[#28040d]/40' : ''
+          !isSingleView ? 'border-b border-[#1e2e4a] last:border-b-0 bg-[#0c1424]/60' : ''
         }`}
       >
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -339,22 +345,22 @@ export const TopAdvisoryBanner: React.FC = () => {
               <span className={`px-2 py-0.5 rounded-full text-[10px] border ${badge.classes}`}>
                 {badge.label}
               </span>
-              <span className="font-bold bg-[#20030a] px-2 py-0.5 rounded-md border border-[#841c34]">
+              <span className="font-bold bg-[#121c2e] px-2 py-0.5 rounded-md border border-[#233555] text-amber-300">
                 📍 {adv.district === 'all' ? 'Nationwide (All Belize)' : `${adv.district} District`}
               </span>
-              <span className="text-slate-300">
+              <span className="text-slate-400 font-mono">
                 Issued: {new Date(adv.publishedAt).toLocaleDateString()} {new Date(adv.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
               {adv.updatedAt && (
                 <span
-                  className="text-[10px] text-[#f3c853] bg-[#20030a] px-1.5 py-0.5 rounded border border-[#841c34] font-mono"
+                  className="text-[10px] text-[#f3c853] bg-[#121c2e] px-1.5 py-0.5 rounded border border-[#233555] font-mono"
                   title={`Last updated by ${adv.updatedBy || 'Admin'}`}
                 >
                   Edited: {new Date(adv.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}
-              <span className="text-amber-200/90">
-                Authority: <strong className="text-white">{adv.issuingAuthority || adv.publishedBy || 'National Emergency Management Organization (NEMO)'}</strong>
+              <span className="text-slate-400">
+                Authority: <strong className="text-slate-200">{adv.issuingAuthority || adv.publishedBy || 'National Emergency Management Organization (NEMO)'}</strong>
               </span>
             </div>
 
@@ -364,13 +370,13 @@ export const TopAdvisoryBanner: React.FC = () => {
             </h3>
 
             {/* Summary */}
-            <p className="text-xs sm:text-sm text-slate-200 max-w-4xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-300 max-w-4xl leading-relaxed">
               {adv.summary}
             </p>
 
             {/* Safety Directive */}
             {adv.safetyInstructions && (
-              <div className="bg-[#20030a] p-2.5 rounded-xl border border-amber-500/40 text-xs text-amber-200 space-y-0.5">
+              <div className="bg-[#080d18] p-3 rounded-xl border border-amber-500/30 text-xs text-amber-200 space-y-1">
                 <span className="font-bold text-amber-300 text-[10px] uppercase tracking-wide block">
                   Public Safety & Action Directive:
                 </span>
@@ -387,10 +393,10 @@ export const TopAdvisoryBanner: React.FC = () => {
                   href={adv.publicationUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#500717] hover:bg-[#6b0f24] text-[#f3c853] hover:text-white border border-[#d4af37]/40 text-xs font-bold transition shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#14233c] hover:bg-[#1d3356] text-[#d4af37] hover:text-white border border-[#2a4575] text-xs font-bold transition shadow-sm"
                   title="Open Official Publication Source"
                 >
-                  <ExternalLink className="w-3 h-3 text-[#f3c853]" />
+                  <ExternalLink className="w-3.5 h-3.5 text-[#d4af37]" />
                   <span>Official Publication: {adv.publicationUrl}</span>
                 </a>
               </div>
@@ -399,46 +405,57 @@ export const TopAdvisoryBanner: React.FC = () => {
 
           {/* Right Column: Attachment & Actions */}
           <div className="shrink-0 flex items-center gap-2 self-start md:self-center">
-            {(adv.fileUrl || adv.fileName) && (
-              <div className="flex items-center gap-2 bg-[#20030a]/80 p-2 rounded-xl border border-[#d4af37]/40 shadow-inner">
-                {adv.fileType === 'pdf' ? (
+            {(pdfTargetUrl || adv.fileName) && (
+              <div className="flex items-center gap-2 bg-[#121c2e] p-2.5 rounded-xl border border-[#233555] shadow-sm">
+                {adv.fileType === 'pdf' || (adv.fileName && adv.fileName.toLowerCase().endsWith('.pdf')) ? (
                   <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-lg bg-red-950/80 border border-red-500/60 flex items-center justify-center text-red-400">
+                    <div className="w-10 h-10 rounded-lg bg-red-950/60 border border-red-500/40 flex items-center justify-center text-red-400">
                       <FileText className="w-5 h-5" />
                     </div>
                     <div className="text-left pr-2">
-                      <span className="text-[10px] font-bold text-red-300 uppercase tracking-wider block">Official PDF</span>
+                      <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider block">Official PDF</span>
                       <span className="text-xs font-bold text-white max-w-[130px] truncate block">
                         {adv.fileName || 'Bulletin.pdf'}
                       </span>
                     </div>
-                    {adv.fileUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => setViewingFileAdvisory(adv)}
-                        className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>View PDF</span>
-                      </button>
-                    ) : adv.publicationUrl ? (
-                      <a
-                        href={adv.publicationUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Open PDF</span>
-                      </a>
-                    ) : null}
+                    {pdfTargetUrl && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setViewingFileAdvisory(effectiveAdv)}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
+                          title="Inspect PDF Document"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>View PDF</span>
+                        </button>
+                        <a
+                          href={pdfTargetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1.5 rounded-lg bg-[#14233c] hover:bg-[#1d3356] text-[#d4af37] border border-[#27406b] text-xs font-bold transition flex items-center gap-1 shadow-sm"
+                          title="Open PDF Document File Directly"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Open File</span>
+                        </a>
+                        <a
+                          href={pdfTargetUrl}
+                          download={adv.fileName || 'advisory.pdf'}
+                          className="p-1.5 rounded-lg bg-[#14233c] hover:bg-[#1d3356] text-slate-300 hover:text-white border border-[#27406b] transition"
+                          title="Download PDF"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     {adv.fileUrl ? (
                       <div
                         onClick={() => setViewingFileAdvisory(adv)}
-                        className="relative w-11 h-11 rounded-lg overflow-hidden border border-[#d4af37]/60 cursor-pointer group"
+                        className="relative w-11 h-11 rounded-lg overflow-hidden border border-[#2e456e] cursor-pointer group"
                       >
                         <img
                           src={adv.fileUrl}
@@ -450,7 +467,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-lg bg-amber-950/80 border border-amber-500/60 flex items-center justify-center text-amber-400">
+                      <div className="w-10 h-10 rounded-lg bg-amber-950/60 border border-amber-500/40 flex items-center justify-center text-amber-400">
                         <ImageIcon className="w-5 h-5" />
                       </div>
                     )}
@@ -460,7 +477,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                         {adv.fileName || 'Bulletin.jpg'}
                       </span>
                     </div>
-                    {adv.fileUrl ? (
+                    {adv.fileUrl && (
                       <button
                         type="button"
                         onClick={() => setViewingFileAdvisory(adv)}
@@ -469,17 +486,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                         <Eye className="w-3.5 h-3.5" />
                         <span>Inspect</span>
                       </button>
-                    ) : adv.publicationUrl ? (
-                      <a
-                        href={adv.publicationUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>View</span>
-                      </a>
-                    ) : null}
+                    )}
                   </div>
                 )}
               </div>
@@ -489,9 +496,9 @@ export const TopAdvisoryBanner: React.FC = () => {
             {isAdmin && (
               <button
                 type="button"
-                onClick={() => handleOpenEdit(adv)}
+                onClick={() => handleOpenEdit(effectiveAdv)}
                 title="Edit this advisory"
-                className="p-2 rounded-xl text-[#d4af37] hover:text-white hover:bg-[#500717] border border-[#d4af37]/60 transition flex items-center gap-1 text-xs font-bold shadow-sm"
+                className="px-2.5 py-1.5 rounded-xl bg-[#14233c] hover:bg-[#1d3356] text-[#d4af37] hover:text-white border border-[#27406b] transition flex items-center gap-1 text-xs font-bold shadow-sm"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Edit</span>
@@ -504,7 +511,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                 type="button"
                 onClick={() => setDeletingAdvisory(adv)}
                 title="Delete this advisory"
-                className="p-2 rounded-xl text-red-300 hover:text-white hover:bg-red-950/80 border border-red-700/60 transition"
+                className="p-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-white/10 border border-red-800/40 transition"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -516,15 +523,15 @@ export const TopAdvisoryBanner: React.FC = () => {
   };
 
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#380714] via-[#4d0718] to-[#2d050f] border-2 border-[#d4af37]/80 text-white shadow-xl shadow-[#20030a]/50">
+    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0c1424] via-[#0f1a2e] to-[#0a1120] border-2 border-[#d4af37]/70 text-slate-100 shadow-xl shadow-black/40">
       {/* Top Banner Ribbon */}
-      <div className="px-3 sm:px-4 py-2 border-b border-[#841c34]/70 flex flex-wrap items-center justify-between gap-2 bg-[#20030a]/80">
+      <div className="px-3 sm:px-4 py-2 border-b border-[#1e2e4a] flex flex-wrap items-center justify-between gap-2 bg-[#080d18]/90">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-[#d4af37] text-slate-950 shadow-sm">
-            <Radio className="w-3 h-3 text-[#500717] animate-pulse" />
+            <Radio className="w-3 h-3 text-red-600 animate-pulse" />
             Official Belize National Emergency Advisories
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-950 text-amber-200 border border-amber-500/40">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#14233c] text-amber-300 border border-amber-500/30">
             ⚡ {advisories.length} Active {advisories.length === 1 ? 'Bulletin' : 'Bulletins'} Posted
           </span>
         </div>
@@ -536,7 +543,7 @@ export const TopAdvisoryBanner: React.FC = () => {
             href="https://nms.gov.bz/"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-amber-200 hover:text-white text-[11px] font-bold border border-white/10 transition"
+            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold border border-white/10 transition"
             title="Visit Official National Meteorological Service Website"
           >
             <span>nms.gov.bz</span>
@@ -551,7 +558,7 @@ export const TopAdvisoryBanner: React.FC = () => {
               className={`px-2.5 py-1 rounded-xl text-[11px] font-black border transition flex items-center gap-1.5 ${
                 viewAllStacked
                   ? 'bg-[#d4af37] text-slate-950 border-[#d4af37] shadow'
-                  : 'bg-[#500717] text-amber-200 border-[#841c34] hover:bg-[#6b0f24]'
+                  : 'bg-[#121c2e] text-slate-300 border-[#233555] hover:bg-[#1a2942] hover:text-white'
               }`}
             >
               <Layers className="w-3 h-3" />
@@ -575,7 +582,7 @@ export const TopAdvisoryBanner: React.FC = () => {
 
       {/* Prominent Multi-Advisory Tab Bar (Displayed when multiple advisories exist & not in stacked view) */}
       {!viewAllStacked && advisories.length > 1 && (
-        <div className="px-3 sm:px-4 py-2 bg-[#1b0309] border-b border-[#841c34]/70 flex flex-wrap items-center justify-between gap-2">
+        <div className="px-3 sm:px-4 py-2 bg-[#090f1a] border-b border-[#1e2e4a] flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
             <span className="text-[10px] font-black uppercase text-amber-300 tracking-wider mr-1">
               Active Bulletins:
@@ -591,7 +598,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                   className={`group px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${
                     isSelected
                       ? 'bg-gradient-to-r from-[#d4af37] to-[#f3c853] text-slate-950 border-amber-200 shadow-md scale-102'
-                      : 'bg-[#30050f] text-amber-200/90 border-[#841c34] hover:bg-[#4d0718] hover:text-white'
+                      : 'bg-[#121c2e] text-slate-300 border-[#233555] hover:bg-[#1a2942] hover:text-white'
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${b.dot} ${isSelected ? 'animate-ping' : ''}`} />
@@ -610,7 +617,7 @@ export const TopAdvisoryBanner: React.FC = () => {
               type="button"
               disabled={safeIndex === 0}
               onClick={() => setActiveAdvisoryIndex((prev) => Math.max(0, prev - 1))}
-              className="p-1 rounded-lg bg-[#30050f] hover:bg-[#500717] disabled:opacity-30 disabled:hover:bg-[#30050f] border border-[#841c34] text-amber-200 text-xs font-bold flex items-center gap-0.5"
+              className="p-1 rounded-lg bg-[#121c2e] hover:bg-[#1a2942] disabled:opacity-30 disabled:hover:bg-[#121c2e] border border-[#233555] text-slate-300 text-xs font-bold flex items-center gap-0.5"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               <span className="hidden sm:inline pr-1">Prev</span>
@@ -622,7 +629,7 @@ export const TopAdvisoryBanner: React.FC = () => {
               type="button"
               disabled={safeIndex === advisories.length - 1}
               onClick={() => setActiveAdvisoryIndex((prev) => Math.min(advisories.length - 1, prev + 1))}
-              className="p-1 rounded-lg bg-[#30050f] hover:bg-[#500717] disabled:opacity-30 disabled:hover:bg-[#30050f] border border-[#841c34] text-amber-200 text-xs font-bold flex items-center gap-0.5"
+              className="p-1 rounded-lg bg-[#121c2e] hover:bg-[#1a2942] disabled:opacity-30 disabled:hover:bg-[#121c2e] border border-[#233555] text-slate-300 text-xs font-bold flex items-center gap-0.5"
             >
               <span className="hidden sm:inline pl-1">Next</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -633,7 +640,7 @@ export const TopAdvisoryBanner: React.FC = () => {
 
       {/* Advisory Content Presentation */}
       {viewAllStacked ? (
-        <div className="divide-y divide-[#841c34]/60">
+        <div className="divide-y divide-[#1e2e4a]">
           {advisories.map((adv, idx) => renderAdvisoryContent(adv, idx, false))}
         </div>
       ) : (
@@ -643,31 +650,44 @@ export const TopAdvisoryBanner: React.FC = () => {
       {/* MODAL 1: VIEW FULL-SIZE IMAGE OR EMBEDDED PDF */}
       {viewingFileAdvisory && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
-          <div className="bg-[#24050e] border-2 border-[#d4af37] rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl text-white">
+          <div className="bg-[#0b1220] border-2 border-[#1e2e4a] rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl text-slate-100">
             {/* Modal Header */}
-            <div className="p-4 bg-[#380714] border-b border-[#841c34] flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+            <div className="p-4 bg-[#080d18] border-b border-[#1e2e4a] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
                 {viewingFileAdvisory.fileType === 'pdf' ? (
-                  <FileText className="w-5 h-5 text-red-400" />
+                  <FileText className="w-5 h-5 text-red-400 shrink-0" />
                 ) : (
-                  <ImageIcon className="w-5 h-5 text-amber-400" />
+                  <ImageIcon className="w-5 h-5 text-amber-400 shrink-0" />
                 )}
-                <div>
-                  <h4 className="font-black text-sm text-white">
+                <div className="min-w-0">
+                  <h4 className="font-black text-sm text-white truncate">
                     {viewingFileAdvisory.title}
                   </h4>
-                  <p className="text-[11px] text-amber-300 font-mono">
+                  <p className="text-[11px] text-[#f3c853] font-mono truncate">
                     {viewingFileAdvisory.fileName || 'Official Attachment'}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
+                {viewingFileAdvisory.fileUrl && (
+                  <a
+                    href={viewingFileAdvisory.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-[#1e2e4a] hover:bg-[#283e65] text-amber-300 border border-amber-400/30 text-xs font-bold transition flex items-center gap-1.5"
+                    title="Open PDF File directly in new tab"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span className="hidden sm:inline">Open File</span>
+                  </a>
+                )}
                 {viewingFileAdvisory.fileUrl && (
                   <a
                     href={viewingFileAdvisory.fileUrl}
                     download={viewingFileAdvisory.fileName || 'belize_advisory'}
-                    className="p-2 rounded-xl bg-[#500717] hover:bg-[#6b0f24] text-amber-200 border border-[#d4af37]/40 text-xs font-bold transition flex items-center gap-1.5"
+                    className="p-2 rounded-xl bg-[#121c2e] hover:bg-[#1c2c46] text-slate-200 border border-[#233555] text-xs font-bold transition flex items-center gap-1.5"
+                    title="Download File"
                   >
                     <Download className="w-4 h-4" />
                     <span className="hidden sm:inline">Download</span>
@@ -684,7 +704,7 @@ export const TopAdvisoryBanner: React.FC = () => {
             </div>
 
             {/* Modal Content */}
-            <div className="p-4 flex-1 overflow-auto flex items-center justify-center bg-black/50 min-h-[350px]">
+            <div className="p-4 flex-1 overflow-auto flex items-center justify-center bg-black/60 min-h-[350px]">
               {viewingFileAdvisory.fileType === 'pdf' ? (
                 <div className="w-full h-[65vh] flex flex-col items-center">
                   <object
@@ -692,18 +712,19 @@ export const TopAdvisoryBanner: React.FC = () => {
                     type="application/pdf"
                     className="w-full h-full rounded-xl border border-slate-700 bg-white"
                   >
-                    <div className="p-6 text-center space-y-3 bg-[#380714] rounded-2xl border border-red-500/50">
+                    <div className="p-6 text-center space-y-3 bg-[#121c2e] rounded-2xl border border-[#233555] max-w-md mx-auto my-auto">
                       <FileText className="w-12 h-12 text-red-400 mx-auto" />
                       <p className="text-sm font-bold text-white">
                         PDF preview cannot be embedded directly in your mobile browser.
                       </p>
                       <a
                         href={viewingFileAdvisory.fileUrl}
-                        download={viewingFileAdvisory.fileName || 'advisory.pdf'}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#d4af37] text-slate-950 font-black text-xs shadow"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#d4af37] text-slate-950 font-black text-xs shadow hover:bg-amber-300 transition"
                       >
-                        <Download className="w-4 h-4" />
-                        Download & Open PDF Document
+                        <ExternalLink className="w-4 h-4" />
+                        Open PDF Document
                       </a>
                     </div>
                   </object>
@@ -718,7 +739,7 @@ export const TopAdvisoryBanner: React.FC = () => {
             </div>
 
             {/* Modal Footer Description */}
-            <div className="p-3 bg-[#1a030a] border-t border-[#841c34] text-xs text-slate-300">
+            <div className="p-3 bg-[#080d18] border-t border-[#1e2e4a] text-xs text-slate-300">
               <span className="font-bold text-[#f3c853]">Summary: </span>
               {viewingFileAdvisory.summary}
             </div>
@@ -729,25 +750,25 @@ export const TopAdvisoryBanner: React.FC = () => {
       {/* MODAL 2: CONFIRM ADVISORY DELETION */}
       {deletingAdvisory && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
-          <div className="bg-[#24050e] border-2 border-red-500 rounded-3xl max-w-md w-full p-5 shadow-2xl text-white space-y-4">
+          <div className="bg-[#0b1220] border-2 border-red-500/80 rounded-3xl max-w-md w-full p-5 shadow-2xl text-white space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-red-950/80 border border-red-500/50 flex items-center justify-center text-red-400 shrink-0">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="font-black text-base text-white">Delete Emergency Advisory</h3>
-                <p className="text-xs text-red-200">This action will remove the bulletin from active circulation.</p>
+                <p className="text-xs text-slate-300">This action will remove the bulletin from active circulation.</p>
               </div>
             </div>
 
-            <div className="bg-[#180309] p-3 rounded-xl border border-[#841c34] text-xs space-y-1">
+            <div className="bg-[#121c2e] p-3 rounded-xl border border-[#233555] text-xs space-y-1">
               <div className="font-bold text-white">{deletingAdvisory.title}</div>
               <div className="text-amber-300 text-[11px]">
                 {deletingAdvisory.district === 'all' ? 'Nationwide' : `${deletingAdvisory.district} District`} • Issued: {new Date(deletingAdvisory.publishedAt).toLocaleDateString()}
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#841c34]">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1e2e4a]">
               <button
                 type="button"
                 onClick={() => setDeletingAdvisory(null)}
@@ -775,15 +796,15 @@ export const TopAdvisoryBanner: React.FC = () => {
       {/* MODAL 3: UPLOAD / PUBLISH OFFICIAL ADVISORY (IMAGE OR PDF) */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
-          <div className="bg-[#2a0610] border-2 border-[#d4af37] rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl text-white">
-            <div className="p-4 bg-[#3d0817] border-b border-[#841c34] flex items-center justify-between">
+          <div className="bg-[#0b1220] border-2 border-[#1e2e4a] rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl text-slate-100">
+            <div className="p-4 bg-[#080d18] border-b border-[#1e2e4a] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-[#f3c853]" />
                 <div>
                   <h3 className="font-black text-base text-white">
                     Publish Official Emergency Advisory
                   </h3>
-                  <p className="text-[10px] text-amber-200">
+                  <p className="text-[10px] text-slate-300">
                     Existing advisories will remain active. Multiple advisories can be posted simultaneously.
                   </p>
                 </div>
@@ -799,14 +820,14 @@ export const TopAdvisoryBanner: React.FC = () => {
 
             <form onSubmit={handlePublishAdvisory} className="p-5 space-y-3.5 overflow-y-auto max-h-[75vh]">
               {uploadError && (
-                <div className="p-2.5 rounded-xl bg-red-950 border border-red-500/80 text-red-200 text-xs font-medium">
+                <div className="p-2.5 rounded-xl bg-red-950/80 border border-red-500/80 text-red-200 text-xs font-medium">
                   {uploadError}
                 </div>
               )}
 
               {/* Title */}
               <div>
-                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                   Advisory Headline / Bulletin Title *
                 </label>
                 <input
@@ -815,20 +836,20 @@ export const TopAdvisoryBanner: React.FC = () => {
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="e.g. Flash Flood Emergency Warning for Cayo & Stann Creek..."
-                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
               {/* Urgency & District Grid */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                     Alert Urgency Tier
                   </label>
                   <select
                     value={newUrgency}
                     onChange={(e) => setNewUrgency(e.target.value as AdvisoryUrgency)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs font-bold text-white focus:outline-none focus:border-[#d4af37]"
+                    className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs font-bold text-white focus:outline-none focus:border-[#d4af37]"
                   >
                     <option value="critical">🔴 RED ALERT (Severe)</option>
                     <option value="warning">🟠 OFFICIAL WARNING</option>
@@ -839,13 +860,13 @@ export const TopAdvisoryBanner: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                     Target District
                   </label>
                   <select
                     value={newDistrict}
                     onChange={(e) => setNewDistrict(e.target.value as BelizeDistrict | 'all')}
-                    className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs font-bold text-white focus:outline-none focus:border-[#d4af37]"
+                    className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs font-bold text-white focus:outline-none focus:border-[#d4af37]"
                   >
                     <option value="all">Nationwide (All Belize)</option>
                     {BELIZE_DISTRICTS.map((d) => (
@@ -859,7 +880,7 @@ export const TopAdvisoryBanner: React.FC = () => {
 
               {/* Issuing Authority */}
               <div>
-                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                   Issuing Authority
                 </label>
                 <input
@@ -867,13 +888,13 @@ export const TopAdvisoryBanner: React.FC = () => {
                   value={newIssuingAuthority}
                   onChange={(e) => setNewIssuingAuthority(e.target.value)}
                   placeholder="e.g. National Emergency Management Organization (NEMO) or NMS"
-                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
               {/* Summary / Guidance */}
               <div>
-                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                   Advisory Summary & Details *
                 </label>
                 <textarea
@@ -881,13 +902,13 @@ export const TopAdvisoryBanner: React.FC = () => {
                   value={newSummary}
                   onChange={(e) => setNewSummary(e.target.value)}
                   placeholder="Detail the emergency situation, meteorological observations, and affected areas..."
-                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
               {/* Safety Directive */}
               <div>
-                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                   Public Safety & Action Directive (Instructions)
                 </label>
                 <textarea
@@ -895,13 +916,13 @@ export const TopAdvisoryBanner: React.FC = () => {
                   value={newSafetyInstructions}
                   onChange={(e) => setNewSafetyInstructions(e.target.value)}
                   placeholder="Specify evacuation directives, shelter instructions, emergency phone numbers, and road precautions..."
-                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
               {/* Publication Web Link */}
               <div>
-                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                   Official Publication / Web Link (Optional)
                 </label>
                 <input
@@ -909,21 +930,21 @@ export const TopAdvisoryBanner: React.FC = () => {
                   value={newPublicationUrl}
                   onChange={(e) => setNewPublicationUrl(e.target.value)}
                   placeholder="e.g. https://nms.gov.bz/weather-forecast/ or official government publication"
-                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
               {/* Upload Actual Advisory Image or .PDF */}
-              <div className="p-3.5 bg-[#1f040b] rounded-2xl border-2 border-dashed border-[#d4af37]/60 space-y-2">
+              <div className="p-3.5 bg-[#101a2c] rounded-2xl border-2 border-dashed border-[#233555] space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black text-amber-300 uppercase tracking-wider">
                     Upload Official Attachment (.PDF or Image)
                   </span>
-                  <span className="text-[10px] text-amber-200/60 font-mono">Max 850KB</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Max 850KB</span>
                 </div>
 
                 {uploadedFileUrl ? (
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#380714] border border-[#d4af37]/50">
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#121c2e] border border-[#233555]">
                     <div className="flex items-center gap-2">
                       {uploadedFileType === 'pdf' ? (
                         <FileCheck className="w-5 h-5 text-red-400" />
@@ -965,7 +986,7 @@ export const TopAdvisoryBanner: React.FC = () => {
               </div>
 
               {/* Submit CTA */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#841c34]">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1e2e4a]">
                 <button
                   type="button"
                   onClick={() => setIsUploadModalOpen(false)}
@@ -989,15 +1010,15 @@ export const TopAdvisoryBanner: React.FC = () => {
       {/* MODAL 4: EDIT OFFICIAL ADVISORY BULLETIN */}
       {editingAdvisory && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
-          <div className="bg-[#2a0610] border-2 border-[#d4af37] rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl text-white">
-            <div className="p-4 bg-[#3d0817] border-b border-[#841c34] flex items-center justify-between">
+          <div className="bg-[#0b1220] border-2 border-[#1e2e4a] rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl text-slate-100">
+            <div className="p-4 bg-[#080d18] border-b border-[#1e2e4a] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Edit3 className="w-5 h-5 text-[#f3c853]" />
                 <div>
                   <h3 className="font-black text-base text-white">
                     Edit Emergency Advisory Bulletin
                   </h3>
-                  <p className="text-[10px] text-amber-200">
+                  <p className="text-[10px] text-slate-300">
                     Update title, instructions, publication links, or attached documents in real time.
                   </p>
                 </div>
@@ -1013,14 +1034,14 @@ export const TopAdvisoryBanner: React.FC = () => {
 
             <form onSubmit={handleSaveAdvisoryEdit} className="p-5 space-y-3.5 overflow-y-auto max-h-[75vh]">
               {editError && (
-                <div className="p-2.5 rounded-xl bg-red-950 border border-red-500/80 text-red-200 text-xs font-medium">
+                <div className="p-2.5 rounded-xl bg-red-950/80 border border-red-500/80 text-red-200 text-xs font-medium">
                   {editError}
                 </div>
               )}
 
               {/* Title */}
               <div>
-                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                   Advisory Headline / Bulletin Title *
                 </label>
                 <input
@@ -1029,20 +1050,20 @@ export const TopAdvisoryBanner: React.FC = () => {
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   placeholder="e.g. Flash Flood Emergency Warning..."
-                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
               {/* Urgency & District Grid */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                     Alert Urgency Tier
                   </label>
                   <select
                     value={editUrgency}
                     onChange={(e) => setEditUrgency(e.target.value as AdvisoryUrgency)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs font-bold text-white focus:outline-none focus:border-[#d4af37]"
+                    className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs font-bold text-white focus:outline-none focus:border-[#d4af37]"
                   >
                     <option value="critical">🔴 RED ALERT (Severe)</option>
                     <option value="warning">🟠 OFFICIAL WARNING</option>
@@ -1053,13 +1074,13 @@ export const TopAdvisoryBanner: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                     Target District
                   </label>
                   <select
                     value={editDistrict}
                     onChange={(e) => setEditDistrict(e.target.value as BelizeDistrict | 'all')}
-                    className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs font-bold text-white focus:outline-none focus:border-[#d4af37]"
+                    className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs font-bold text-white focus:outline-none focus:border-[#d4af37]"
                   >
                     <option value="all">Nationwide (All Belize)</option>
                     {BELIZE_DISTRICTS.map((d) => (
@@ -1073,20 +1094,20 @@ export const TopAdvisoryBanner: React.FC = () => {
 
               {/* Issuing Authority */}
               <div>
-                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                   Issuing Authority
                 </label>
                 <input
                   type="text"
                   value={editIssuingAuthority}
                   onChange={(e) => setEditIssuingAuthority(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
               {/* Summary / Guidance */}
               <div>
-                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                   Advisory Summary & Details *
                 </label>
                 <textarea
@@ -1094,13 +1115,13 @@ export const TopAdvisoryBanner: React.FC = () => {
                   value={editSummary}
                   onChange={(e) => setEditSummary(e.target.value)}
                   placeholder="Detail the emergency situation, observations, and affected areas..."
-                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
               {/* Safety Directive */}
               <div>
-                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                   Public Safety & Action Directive (Instructions)
                 </label>
                 <textarea
@@ -1108,13 +1129,13 @@ export const TopAdvisoryBanner: React.FC = () => {
                   value={editSafetyInstructions}
                   onChange={(e) => setEditSafetyInstructions(e.target.value)}
                   placeholder="Specify evacuation directives, safety precautions..."
-                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
               {/* Publication Web Link */}
               <div>
-                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-1">
                   Official Publication / Web Link (Optional)
                 </label>
                 <input
@@ -1122,21 +1143,21 @@ export const TopAdvisoryBanner: React.FC = () => {
                   value={editPublicationUrl}
                   onChange={(e) => setEditPublicationUrl(e.target.value)}
                   placeholder="e.g. https://nms.gov.bz/weather-forecast/ or official government portal"
-                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
               {/* Upload / Replace Advisory Image or .PDF */}
-              <div className="p-3.5 bg-[#1f040b] rounded-2xl border-2 border-dashed border-[#d4af37]/60 space-y-2">
+              <div className="p-3.5 bg-[#101a2c] rounded-2xl border-2 border-dashed border-[#233555] space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black text-amber-300 uppercase tracking-wider">
                     Official Attachment (.PDF or Image)
                   </span>
-                  <span className="text-[10px] text-amber-200/60 font-mono">Max 850KB</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Max 850KB</span>
                 </div>
 
                 {editFileUrl || editFileName ? (
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#380714] border border-[#d4af37]/50">
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#121c2e] border border-[#233555]">
                     <div className="flex items-center gap-2 min-w-0">
                       {editFileType === 'pdf' || (editFileName && editFileName.toLowerCase().endsWith('.pdf')) ? (
                         <FileCheck className="w-5 h-5 text-red-400 shrink-0" />
@@ -1153,7 +1174,7 @@ export const TopAdvisoryBanner: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <label className="px-2 py-1 rounded-lg bg-[#500717] hover:bg-[#6b0f24] border border-[#841c34] text-amber-200 text-xs font-bold cursor-pointer transition">
+                      <label className="px-2.5 py-1 rounded-lg bg-[#1e2e4a] hover:bg-[#283e65] border border-[#233555] text-slate-200 text-xs font-bold cursor-pointer transition">
                         Replace
                         <input
                           type="file"
@@ -1193,7 +1214,7 @@ export const TopAdvisoryBanner: React.FC = () => {
               </div>
 
               {/* Submit CTA */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#841c34]">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1e2e4a]">
                 <button
                   type="button"
                   onClick={() => setEditingAdvisory(null)}
