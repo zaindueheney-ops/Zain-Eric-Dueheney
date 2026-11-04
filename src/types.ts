@@ -154,6 +154,9 @@ export interface OfficialAdvisory {
     community: boolean;
     schools: boolean;
   };
+  updatedAt?: string;
+  updatedBy?: string;
+  updatedByEmail?: string;
 }
 
 export interface DispatchConversation {

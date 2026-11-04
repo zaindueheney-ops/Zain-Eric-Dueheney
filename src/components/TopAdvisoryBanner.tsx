@@ -16,7 +16,8 @@ import {
   FileCheck,
   Layers,
   CheckCircle2,
-  Info
+  Info,
+  Edit3
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useAdvisories } from '../context/AdvisoryContext';
@@ -25,11 +26,12 @@ import { BELIZE_DISTRICTS } from '../data/belizeGeo';
 
 export const TopAdvisoryBanner: React.FC = () => {
   const { isAdmin } = useAuth();
-  const { advisories, addAdvisory, deleteAdvisory } = useAdvisories();
+  const { advisories, addAdvisory, updateAdvisory, deleteAdvisory } = useAdvisories();
 
   const [activeAdvisoryIndex, setActiveAdvisoryIndex] = useState(0);
   const [viewAllStacked, setViewAllStacked] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [editingAdvisory, setEditingAdvisory] = useState<OfficialAdvisory | null>(null);
   const [viewingFileAdvisory, setViewingFileAdvisory] = useState<OfficialAdvisory | null>(null);
   const [deletingAdvisory, setDeletingAdvisory] = useState<OfficialAdvisory | null>(null);
 
@@ -47,6 +49,21 @@ export const TopAdvisoryBanner: React.FC = () => {
   const [fileSizeText, setFileSizeText] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Edit Modal Form State
+  const [editTitle, setEditTitle] = useState('');
+  const [editUrgency, setEditUrgency] = useState<AdvisoryUrgency>('warning');
+  const [editDistrict, setEditDistrict] = useState<BelizeDistrict | 'all'>('all');
+  const [editSummary, setEditSummary] = useState('');
+  const [editSafetyInstructions, setEditSafetyInstructions] = useState('');
+  const [editIssuingAuthority, setEditIssuingAuthority] = useState('');
+  const [editPublicationUrl, setEditPublicationUrl] = useState('');
+  const [editFileUrl, setEditFileUrl] = useState<string | null>(null);
+  const [editFileType, setEditFileType] = useState<'image' | 'pdf' | null>(null);
+  const [editFileName, setEditFileName] = useState<string | null>(null);
+  const [editFileSizeText, setEditFileSizeText] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Ensure active index is within bounds
   const safeIndex = Math.min(activeAdvisoryIndex, Math.max(0, advisories.length - 1));
@@ -158,6 +175,114 @@ export const TopAdvisoryBanner: React.FC = () => {
     }
   };
 
+  const handleOpenEdit = (adv: OfficialAdvisory) => {
+    setEditingAdvisory(adv);
+    setEditTitle(adv.title || '');
+    setEditUrgency(adv.urgencyLevel || 'warning');
+    setEditDistrict(adv.district || 'all');
+    setEditSummary(adv.summary || '');
+    setEditSafetyInstructions(adv.safetyInstructions || '');
+    setEditIssuingAuthority(adv.issuingAuthority || 'National Emergency Management Organization (NEMO)');
+    setEditPublicationUrl(adv.publicationUrl || '');
+    setEditFileUrl(adv.fileUrl || null);
+    setEditFileType(adv.fileType || null);
+    setEditFileName(adv.fileName || null);
+    setEditFileSizeText(null);
+    setEditError(null);
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setEditError(null);
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+    if (!isImage && !isPdf) {
+      setEditError('Unsupported file type. Please upload an image (.jpg, .png, .webp) or a .pdf document.');
+      return;
+    }
+
+    const sizeInKB = Math.round(file.size / 1024);
+    setEditFileSizeText(`${sizeInKB} KB`);
+    setEditFileName(file.name);
+
+    if (isPdf) {
+      if (file.size > 850 * 1024) {
+        setEditError(`PDF file is ${sizeInKB}KB. Please select a PDF smaller than 850KB to preserve rapid loading.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setEditFileUrl(event.target?.result as string);
+        setEditFileType('pdf');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.82);
+            setEditFileUrl(compressed);
+            setEditFileType('image');
+          }
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveAdvisoryEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAdvisory || !editTitle.trim()) {
+      setEditError('Please provide an advisory headline.');
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      await updateAdvisory(editingAdvisory.id, {
+        title: editTitle.trim(),
+        urgencyLevel: editUrgency,
+        district: editDistrict,
+        summary: editSummary.trim() || 'Official Belize National Emergency Advisory bulletin published for public awareness and response coordination.',
+        safetyInstructions: editSafetyInstructions.trim() || '',
+        issuingAuthority: editIssuingAuthority.trim() || 'National Emergency Management Organization (NEMO)',
+        publicationUrl: editPublicationUrl.trim() || '',
+        fileUrl: editFileUrl,
+        fileType: editFileType,
+        fileName: editFileName,
+      });
+
+      setEditingAdvisory(null);
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to update advisory.');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const getUrgencyBadge = (level: AdvisoryUrgency) => {
     switch (level) {
       case 'critical':
@@ -220,6 +345,14 @@ export const TopAdvisoryBanner: React.FC = () => {
               <span className="text-slate-300">
                 Issued: {new Date(adv.publishedAt).toLocaleDateString()} {new Date(adv.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
+              {adv.updatedAt && (
+                <span
+                  className="text-[10px] text-[#f3c853] bg-[#20030a] px-1.5 py-0.5 rounded border border-[#841c34] font-mono"
+                  title={`Last updated by ${adv.updatedBy || 'Admin'}`}
+                >
+                  Edited: {new Date(adv.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
               <span className="text-amber-200/90">
                 Authority: <strong className="text-white">{adv.issuingAuthority || adv.publishedBy || 'National Emergency Management Organization (NEMO)'}</strong>
               </span>
@@ -350,6 +483,19 @@ export const TopAdvisoryBanner: React.FC = () => {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Admin Edit Action */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => handleOpenEdit(adv)}
+                title="Edit this advisory"
+                className="p-2 rounded-xl text-[#d4af37] hover:text-white hover:bg-[#500717] border border-[#d4af37]/60 transition flex items-center gap-1 text-xs font-bold shadow-sm"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Edit</span>
+              </button>
             )}
 
             {/* Admin Delete Action */}
@@ -833,6 +979,234 @@ export const TopAdvisoryBanner: React.FC = () => {
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#f59e0b] hover:from-[#e5c158] hover:to-[#fbbf24] text-slate-950 text-xs font-black shadow-lg transition hover:scale-105 active:scale-95 disabled:opacity-50"
                 >
                   {isSubmitting ? 'Publishing Bulletin...' : 'Publish Official Advisory'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: EDIT OFFICIAL ADVISORY BULLETIN */}
+      {editingAdvisory && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+          <div className="bg-[#2a0610] border-2 border-[#d4af37] rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl text-white">
+            <div className="p-4 bg-[#3d0817] border-b border-[#841c34] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-[#f3c853]" />
+                <div>
+                  <h3 className="font-black text-base text-white">
+                    Edit Emergency Advisory Bulletin
+                  </h3>
+                  <p className="text-[10px] text-amber-200">
+                    Update title, instructions, publication links, or attached documents in real time.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingAdvisory(null)}
+                className="p-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAdvisoryEdit} className="p-5 space-y-3.5 overflow-y-auto max-h-[75vh]">
+              {editError && (
+                <div className="p-2.5 rounded-xl bg-red-950 border border-red-500/80 text-red-200 text-xs font-medium">
+                  {editError}
+                </div>
+              )}
+
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  Advisory Headline / Bulletin Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="e.g. Flash Flood Emergency Warning..."
+                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              {/* Urgency & District Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                    Alert Urgency Tier
+                  </label>
+                  <select
+                    value={editUrgency}
+                    onChange={(e) => setEditUrgency(e.target.value as AdvisoryUrgency)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs font-bold text-white focus:outline-none focus:border-[#d4af37]"
+                  >
+                    <option value="critical">🔴 RED ALERT (Severe)</option>
+                    <option value="warning">🟠 OFFICIAL WARNING</option>
+                    <option value="watch">🟡 EMERGENCY WATCH</option>
+                    <option value="advisory">🔵 NATIONAL ADVISORY</option>
+                    <option value="all_clear">🟢 ALL CLEAR (Normal)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                    Target District
+                  </label>
+                  <select
+                    value={editDistrict}
+                    onChange={(e) => setEditDistrict(e.target.value as BelizeDistrict | 'all')}
+                    className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs font-bold text-white focus:outline-none focus:border-[#d4af37]"
+                  >
+                    <option value="all">Nationwide (All Belize)</option>
+                    {BELIZE_DISTRICTS.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Issuing Authority */}
+              <div>
+                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  Issuing Authority
+                </label>
+                <input
+                  type="text"
+                  value={editIssuingAuthority}
+                  onChange={(e) => setEditIssuingAuthority(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              {/* Summary / Guidance */}
+              <div>
+                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  Advisory Summary & Details *
+                </label>
+                <textarea
+                  rows={3}
+                  value={editSummary}
+                  onChange={(e) => setEditSummary(e.target.value)}
+                  placeholder="Detail the emergency situation, observations, and affected areas..."
+                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              {/* Safety Directive */}
+              <div>
+                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  Public Safety & Action Directive (Instructions)
+                </label>
+                <textarea
+                  rows={2}
+                  value={editSafetyInstructions}
+                  onChange={(e) => setEditSafetyInstructions(e.target.value)}
+                  placeholder="Specify evacuation directives, safety precautions..."
+                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              {/* Publication Web Link */}
+              <div>
+                <label className="block text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                  Official Publication / Web Link (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={editPublicationUrl}
+                  onChange={(e) => setEditPublicationUrl(e.target.value)}
+                  placeholder="e.g. https://nms.gov.bz/weather-forecast/ or official government portal"
+                  className="w-full px-3 py-2 rounded-xl bg-[#1d0309] border border-[#841c34] text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              {/* Upload / Replace Advisory Image or .PDF */}
+              <div className="p-3.5 bg-[#1f040b] rounded-2xl border-2 border-dashed border-[#d4af37]/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-amber-300 uppercase tracking-wider">
+                    Official Attachment (.PDF or Image)
+                  </span>
+                  <span className="text-[10px] text-amber-200/60 font-mono">Max 850KB</span>
+                </div>
+
+                {editFileUrl || editFileName ? (
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#380714] border border-[#d4af37]/50">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {editFileType === 'pdf' || (editFileName && editFileName.toLowerCase().endsWith('.pdf')) ? (
+                        <FileCheck className="w-5 h-5 text-red-400 shrink-0" />
+                      ) : (
+                        <ImageIcon className="w-5 h-5 text-amber-400 shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-white block truncate max-w-[170px]">
+                          {editFileName || 'Attached_Bulletin.pdf'}
+                        </span>
+                        {editFileSizeText && (
+                          <span className="text-[10px] text-amber-300 font-mono">{editFileSizeText}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <label className="px-2 py-1 rounded-lg bg-[#500717] hover:bg-[#6b0f24] border border-[#841c34] text-amber-200 text-xs font-bold cursor-pointer transition">
+                        Replace
+                        <input
+                          type="file"
+                          accept=".pdf,image/png,image/jpeg,image/webp"
+                          onChange={handleEditFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditFileUrl(null);
+                          setEditFileType(null);
+                          setEditFileName(null);
+                          setEditFileSizeText(null);
+                        }}
+                        className="p-1 text-red-300 hover:text-white"
+                        title="Remove attached file"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center p-3.5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/5 transition">
+                    <Upload className="w-6 h-6 text-[#f3c853] mb-1" />
+                    <span className="text-xs font-bold text-white">Upload or replace File (PDF or Image)</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5">Supports .pdf, .jpg, .png, .webp</span>
+                    <input
+                      type="file"
+                      accept=".pdf,image/png,image/jpeg,image/webp"
+                      onChange={handleEditFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Submit CTA */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#841c34]">
+                <button
+                  type="button"
+                  onClick={() => setEditingAdvisory(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#f59e0b] hover:from-[#e5c158] hover:to-[#fbbf24] text-slate-950 text-xs font-black shadow-lg transition hover:scale-105 active:scale-95 disabled:opacity-50"
+                >
+                  {isUpdating ? 'Saving Changes...' : 'Save & Update Advisory'}
                 </button>
               </div>
             </form>

@@ -38,6 +38,32 @@ interface AdvisoryContextType {
       schools: boolean;
     };
   }) => Promise<string>;
+  updateAdvisory: (
+    id: string,
+    updates: {
+      title?: string;
+      urgencyLevel?: AdvisoryUrgency;
+      district?: BelizeDistrict | 'all';
+      affectedCommunities?: string[];
+      summary?: string;
+      safetyInstructions?: string;
+      issuingAuthority?: string;
+      expiresAt?: string;
+      publicationUrl?: string;
+      fileUrl?: string | null;
+      fileType?: 'image' | 'pdf' | null;
+      fileName?: string | null;
+      channels?: {
+        inApp: boolean;
+        email: boolean;
+        sms: boolean;
+        push: boolean;
+        community: boolean;
+        schools: boolean;
+      };
+      active?: boolean;
+    }
+  ) => Promise<OfficialAdvisory>;
   deleteAdvisory: (id: string) => Promise<void>;
 }
 
@@ -338,6 +364,163 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return id;
   };
 
+  const updateAdvisory = async (
+    id: string,
+    updates: {
+      title?: string;
+      urgencyLevel?: AdvisoryUrgency;
+      district?: BelizeDistrict | 'all';
+      affectedCommunities?: string[];
+      summary?: string;
+      safetyInstructions?: string;
+      issuingAuthority?: string;
+      expiresAt?: string;
+      publicationUrl?: string;
+      fileUrl?: string | null;
+      fileType?: 'image' | 'pdf' | null;
+      fileName?: string | null;
+      channels?: {
+        inApp: boolean;
+        email: boolean;
+        sms: boolean;
+        push: boolean;
+        community: boolean;
+        schools: boolean;
+      };
+      active?: boolean;
+    }
+  ): Promise<OfficialAdvisory> => {
+    const existing =
+      advisories.find((a) => a.id === id) ||
+      getCachedAdvisories().find((a) => a.id === id);
+
+    if (!existing) {
+      throw new Error(`Advisory with id ${id} not found.`);
+    }
+
+    const editorName =
+      profile?.displayName || user?.displayName || user?.email || 'Zain Dueheney (Administrator)';
+    const editorEmail = user?.email || 'zaindueheney@gmail.com';
+    const nowIso = new Date().toISOString();
+
+    const merged: OfficialAdvisory = {
+      ...existing,
+      updatedAt: nowIso,
+      updatedBy: editorName,
+      updatedByEmail: editorEmail,
+    };
+
+    if (updates.title !== undefined) merged.title = updates.title.trim();
+    if (updates.urgencyLevel !== undefined) merged.urgencyLevel = updates.urgencyLevel;
+    if (updates.district !== undefined) merged.district = updates.district;
+    if (updates.summary !== undefined) merged.summary = updates.summary.trim();
+
+    if (updates.safetyInstructions !== undefined) {
+      if (updates.safetyInstructions && updates.safetyInstructions.trim()) {
+        merged.safetyInstructions = updates.safetyInstructions.trim();
+      } else {
+        delete (merged as any).safetyInstructions;
+      }
+    }
+
+    if (updates.issuingAuthority !== undefined) {
+      merged.issuingAuthority =
+        updates.issuingAuthority.trim() || 'Belize Emergency Operations Centre (EOC)';
+    }
+
+    if (updates.affectedCommunities !== undefined) {
+      if (updates.affectedCommunities && updates.affectedCommunities.length > 0) {
+        merged.affectedCommunities = updates.affectedCommunities;
+      } else {
+        delete (merged as any).affectedCommunities;
+      }
+    }
+
+    if (updates.expiresAt !== undefined) {
+      if (updates.expiresAt) {
+        merged.expiresAt = updates.expiresAt;
+      } else {
+        delete (merged as any).expiresAt;
+      }
+    }
+
+    if (updates.publicationUrl !== undefined) {
+      if (updates.publicationUrl && updates.publicationUrl.trim()) {
+        merged.publicationUrl = updates.publicationUrl.trim();
+      } else {
+        delete (merged as any).publicationUrl;
+      }
+    }
+
+    // Handle file changes: explicit null means removed, non-null means updated/retained
+    if (updates.fileUrl !== undefined) {
+      if (updates.fileUrl) {
+        merged.fileUrl = updates.fileUrl;
+        merged.fileType = updates.fileType || 'pdf';
+        merged.fileName = updates.fileName || 'Official_Advisory_Bulletin.pdf';
+      } else {
+        delete (merged as any).fileUrl;
+        delete (merged as any).fileType;
+        delete (merged as any).fileName;
+      }
+    }
+
+    if (updates.channels !== undefined) {
+      merged.channels = updates.channels;
+    }
+
+    if (updates.active !== undefined) {
+      merged.active = updates.active;
+    }
+
+    // Strip any lingering undefined values to guarantee clean Firestore payload
+    const cleanedDoc: any = {};
+    Object.keys(merged).forEach((k) => {
+      const val = (merged as any)[k];
+      if (val !== undefined) {
+        cleanedDoc[k] = val;
+      }
+    });
+
+    // 1. Immediately record in local state and localStorage cache
+    setAdvisories((prev) => {
+      const idx = prev.findIndex((a) => a.id === id);
+      const next =
+        idx >= 0
+          ? [...prev.slice(0, idx), cleanedDoc, ...prev.slice(idx + 1)]
+          : [cleanedDoc, ...prev];
+      saveCachedAdvisories(next);
+      return next;
+    });
+
+    // 2. Persist to Firestore
+    try {
+      await setDoc(doc(db, 'advisories', id), cleanedDoc);
+    } catch (err: any) {
+      console.warn('Firestore advisory update notice (cached locally):', err);
+    }
+
+    // 3. Log Audit Trail
+    try {
+      await logAuditEvent({
+        action: `Updated Emergency Advisory / Notification: ${cleanedDoc.title}`,
+        actionCategory: 'alert',
+        actorId: user?.uid || 'sys_admin',
+        actorName: editorName,
+        actorEmail: editorEmail,
+        actorRole: profile?.adminRole || profile?.role || 'admin',
+        targetId: id,
+        targetType: 'advisory',
+        details: `Level: ${cleanedDoc.urgencyLevel} • District: ${cleanedDoc.district} • Modified by ${editorName}`,
+        district: cleanedDoc.district === 'all' ? 'National' : cleanedDoc.district,
+      });
+    } catch (e) {
+      console.warn('Audit log notice:', e);
+    }
+
+    return cleanedDoc as OfficialAdvisory;
+  };
+
   const deleteAdvisory = async (id: string): Promise<void> => {
     // 1. Immediately record deletion and update local state and cache
     saveDeletedAdvisoryId(id);
@@ -377,6 +560,7 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         advisories,
         loading,
         addAdvisory,
+        updateAdvisory,
         deleteAdvisory,
       }}
     >

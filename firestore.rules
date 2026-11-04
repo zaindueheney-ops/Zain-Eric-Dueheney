@@ -127,7 +127,7 @@ service cloud.firestore {
 
     function isValidOfficialAdvisory(data) {
       return data.keys().hasAll(['title', 'urgencyLevel', 'district', 'summary', 'publishedBy', 'publisherEmail', 'active']) &&
-        data.keys().hasOnly(['id', 'title', 'urgencyLevel', 'district', 'summary', 'affectedCommunities', 'safetyInstructions', 'issuingAuthority', 'expiresAt', 'publicationUrl', 'fileUrl', 'fileType', 'fileName', 'publishedBy', 'publisherEmail', 'publishedAt', 'active', 'channels']) &&
+        data.keys().hasOnly(['id', 'title', 'urgencyLevel', 'district', 'summary', 'affectedCommunities', 'safetyInstructions', 'issuingAuthority', 'expiresAt', 'publicationUrl', 'fileUrl', 'fileType', 'fileName', 'publishedBy', 'publisherEmail', 'publishedAt', 'active', 'channels', 'updatedAt', 'updatedBy', 'updatedByEmail']) &&
         data.title is string && data.title.size() > 0 && data.title.size() <= 250 &&
         isValidAdvisoryUrgency(data.urgencyLevel) &&
         (data.district == 'all' || isValidBelizeDistrict(data.district)) &&
@@ -143,7 +143,10 @@ service cloud.firestore {
         (!('fileUrl' in data) || (data.fileUrl is string && data.fileUrl.size() <= 10000000)) &&
         (!('fileType' in data) || (data.fileType in ['image', 'pdf'])) &&
         (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 250)) &&
-        (!('affectedCommunities' in data) || data.affectedCommunities is list);
+        (!('affectedCommunities' in data) || data.affectedCommunities is list) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 60)) &&
+        (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy.size() <= 150)) &&
+        (!('updatedByEmail' in data) || (data.updatedByEmail is string && data.updatedByEmail.size() <= 150));
     }
 
     // --- Live Dispatch Chat Validation ---
