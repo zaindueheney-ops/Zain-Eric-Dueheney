@@ -266,7 +266,7 @@ export const TopAdvisoryBanner: React.FC = () => {
 
           {/* Right Column: Attachment & Actions */}
           <div className="shrink-0 flex items-center gap-2 self-start md:self-center">
-            {adv.fileUrl && (
+            {(adv.fileUrl || adv.fileName) && (
               <div className="flex items-center gap-2 bg-[#20030a]/80 p-2 rounded-xl border border-[#d4af37]/40 shadow-inner">
                 {adv.fileType === 'pdf' ? (
                   <div className="flex items-center gap-2">
@@ -279,44 +279,74 @@ export const TopAdvisoryBanner: React.FC = () => {
                         {adv.fileName || 'Bulletin.pdf'}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setViewingFileAdvisory(adv)}
-                      className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>View PDF</span>
-                    </button>
+                    {adv.fileUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => setViewingFileAdvisory(adv)}
+                        className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View PDF</span>
+                      </button>
+                    ) : adv.publicationUrl ? (
+                      <a
+                        href={adv.publicationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Open PDF</span>
+                      </a>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <div
-                      onClick={() => setViewingFileAdvisory(adv)}
-                      className="relative w-11 h-11 rounded-lg overflow-hidden border border-[#d4af37]/60 cursor-pointer group"
-                    >
-                      <img
-                        src={adv.fileUrl}
-                        alt={adv.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition"
-                      />
-                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition flex items-center justify-center">
-                        <Eye className="w-3.5 h-3.5 text-white" />
+                    {adv.fileUrl ? (
+                      <div
+                        onClick={() => setViewingFileAdvisory(adv)}
+                        className="relative w-11 h-11 rounded-lg overflow-hidden border border-[#d4af37]/60 cursor-pointer group"
+                      >
+                        <img
+                          src={adv.fileUrl}
+                          alt={adv.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition"
+                        />
+                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition flex items-center justify-center">
+                          <Eye className="w-3.5 h-3.5 text-white" />
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-amber-950/80 border border-amber-500/60 flex items-center justify-center text-amber-400">
+                        <ImageIcon className="w-5 h-5" />
+                      </div>
+                    )}
                     <div className="text-left pr-1">
                       <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider block">Image Bulletin</span>
                       <span className="text-xs font-bold text-white max-w-[110px] truncate block">
                         {adv.fileName || 'Bulletin.jpg'}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setViewingFileAdvisory(adv)}
-                      className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Inspect</span>
-                    </button>
+                    {adv.fileUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => setViewingFileAdvisory(adv)}
+                        className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Inspect</span>
+                      </button>
+                    ) : adv.publicationUrl ? (
+                      <a
+                        href={adv.publicationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 text-xs font-black shadow transition flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>View</span>
+                      </a>
+                    ) : null}
                   </div>
                 )}
               </div>

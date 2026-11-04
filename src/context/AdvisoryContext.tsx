@@ -68,6 +68,33 @@ const DEFAULT_SAMPLE_ADVISORY: OfficialAdvisory = {
   },
 };
 
+export const OFFICIAL_SOE_ADVISORY: OfficialAdvisory = {
+  id: 'adv_1793751515155_u8s4i',
+  title: 'State of Emergency Proclamation (SOE)',
+  urgencyLevel: 'warning',
+  district: 'all',
+  summary:
+    'Official Declaration of a State of Emergency (SOE) proclaimed for Belize to strengthen national security, preserve public order, and ensure citizen safety through coordinated inter-agency emergency operations.',
+  safetyInstructions:
+    'All citizens are urged to cooperate fully with law enforcement, civil defense personnel, and NEMO authorities. Exercise caution, heed official security directives, and report any emergency incidents promptly.',
+  issuingAuthority: 'Government of Belize & National Emergency Operations Centre (NEMO)',
+  publicationUrl: 'https://www.facebook.com/photo/?fbid=1541825884638642&set=pcb.1541827211305176',
+  fileName: 'SOE Belize.pdf',
+  fileType: 'pdf',
+  publishedBy: 'Mr. Zain Dueheney (Super Administrator)',
+  publisherEmail: 'zaindueheney@gmail.com',
+  publishedAt: '2026-11-04T00:18:38.041Z',
+  active: true,
+  channels: {
+    inApp: true,
+    email: true,
+    sms: false,
+    push: true,
+    community: true,
+    schools: true,
+  },
+};
+
 const AdvisoryContext = createContext<AdvisoryContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_DELETED_KEY = 'belize_alerts_deleted_advisories';
@@ -108,20 +135,33 @@ function removeDeletedAdvisoryId(id: string) {
 }
 
 function getCachedAdvisories(): OfficialAdvisory[] {
+  const deletedIds = getDeletedAdvisoryIds();
+  const map = new Map<string, OfficialAdvisory>();
+
+  // Baseline system bulletins
+  if (!deletedIds.has(OFFICIAL_SOE_ADVISORY.id)) {
+    map.set(OFFICIAL_SOE_ADVISORY.id, OFFICIAL_SOE_ADVISORY);
+  }
+
   try {
-    const deletedIds = getDeletedAdvisoryIds();
     const raw = localStorage.getItem(LOCAL_STORAGE_ADVISORIES_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.filter((a: OfficialAdvisory) => a && a.id && !deletedIds.has(a.id));
+        parsed.forEach((a: OfficialAdvisory) => {
+          if (a && a.id && !deletedIds.has(a.id)) {
+            map.set(a.id, a);
+          }
+        });
       }
     }
   } catch (e) {
     console.warn('Failed to parse cached advisories:', e);
   }
-  const deletedIds = getDeletedAdvisoryIds();
-  return deletedIds.has(DEFAULT_SAMPLE_ADVISORY.id) ? [] : [DEFAULT_SAMPLE_ADVISORY];
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  );
 }
 
 function saveCachedAdvisories(list: OfficialAdvisory[]) {

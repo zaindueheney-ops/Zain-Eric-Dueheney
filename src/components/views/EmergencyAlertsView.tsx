@@ -450,7 +450,7 @@ export const EmergencyAlertsView: React.FC = () => {
                   )}
 
                   {/* PDF / Image Attachment Display */}
-                  {adv.fileUrl && (
+                  {(adv.fileUrl || adv.fileName) && (
                     <div className="pt-1">
                       {adv.fileType === 'pdf' ? (
                         <div className="p-3 rounded-xl bg-red-950/30 border border-red-500/40 flex items-center justify-between gap-3 shadow-inner">
@@ -469,33 +469,54 @@ export const EmergencyAlertsView: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setViewingFileAdvisory(adv)}
-                              className="px-2.5 py-1.5 rounded-lg bg-[#1a2942] hover:bg-[#283f66] text-[#d4af37] text-xs font-bold transition flex items-center gap-1"
-                              title="Inspect PDF Document"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View</span>
-                            </button>
-                            <a
-                              href={adv.fileUrl}
-                              download={adv.fileName || 'advisory.pdf'}
-                              className="p-1.5 rounded-lg bg-[#1a2942] hover:bg-[#283f66] text-slate-300 hover:text-white transition"
-                              title="Download PDF"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </a>
+                            {adv.fileUrl ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingFileAdvisory(adv)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-[#1a2942] hover:bg-[#283f66] text-[#d4af37] text-xs font-bold transition flex items-center gap-1"
+                                  title="Inspect PDF Document"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>View</span>
+                                </button>
+                                <a
+                                  href={adv.fileUrl}
+                                  download={adv.fileName || 'advisory.pdf'}
+                                  className="p-1.5 rounded-lg bg-[#1a2942] hover:bg-[#283f66] text-slate-300 hover:text-white transition"
+                                  title="Download PDF"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </a>
+                              </>
+                            ) : adv.publicationUrl ? (
+                              <a
+                                href={adv.publicationUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2.5 py-1.5 rounded-lg bg-[#1a2942] hover:bg-[#283f66] text-[#d4af37] text-xs font-bold transition flex items-center gap-1"
+                                title="Open Official Publication"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                <span>Open PDF Source</span>
+                              </a>
+                            ) : null}
                           </div>
                         </div>
                       ) : (
                         <div className="p-2.5 rounded-xl bg-[#121c2e] border border-[#233555] flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2 min-w-0">
-                            <img
-                              src={adv.fileUrl}
-                              alt={adv.fileName || 'Bulletin image'}
-                              className="w-10 h-10 rounded-lg object-cover border border-[#2e456e]"
-                            />
+                            {adv.fileUrl ? (
+                              <img
+                                src={adv.fileUrl}
+                                alt={adv.fileName || 'Bulletin image'}
+                                className="w-10 h-10 rounded-lg object-cover border border-[#2e456e]"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-amber-950/80 border border-amber-500/60 flex items-center justify-center text-amber-400 shrink-0">
+                                <ImageIcon className="w-5 h-5" />
+                              </div>
+                            )}
                             <div className="min-w-0">
                               <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider block">
                                 Official Image Bulletin
@@ -506,14 +527,26 @@ export const EmergencyAlertsView: React.FC = () => {
                             </div>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => setViewingFileAdvisory(adv)}
-                            className="px-2.5 py-1.5 rounded-lg bg-[#1a2942] hover:bg-[#283f66] text-[#d4af37] text-xs font-bold transition flex items-center gap-1 shrink-0"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Inspect</span>
-                          </button>
+                          {adv.fileUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => setViewingFileAdvisory(adv)}
+                              className="px-2.5 py-1.5 rounded-lg bg-[#1a2942] hover:bg-[#283f66] text-[#d4af37] text-xs font-bold transition flex items-center gap-1 shrink-0"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Inspect</span>
+                            </button>
+                          ) : adv.publicationUrl ? (
+                            <a
+                              href={adv.publicationUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1.5 rounded-lg bg-[#1a2942] hover:bg-[#283f66] text-[#d4af37] text-xs font-bold transition flex items-center gap-1 shrink-0"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>View</span>
+                            </a>
+                          ) : null}
                         </div>
                       )}
                     </div>
