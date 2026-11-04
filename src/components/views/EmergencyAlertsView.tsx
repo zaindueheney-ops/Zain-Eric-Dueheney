@@ -87,33 +87,86 @@ export const EmergencyAlertsView: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check size (Max 5MB for storage & data URL reliability)
-    if (file.size > 5 * 1024 * 1024) {
-      setFileError('File exceeds 5MB limit. Please upload a compressed document.');
-      return;
-    }
-
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    const isImg = file.type.startsWith('image/');
+    const isImg = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
 
     if (!isPdf && !isImg) {
-      setFileError('Unsupported file type. Please upload a PDF document or image (.png, .jpg).');
+      setFileError('Unsupported file type. Please upload a PDF document or image (.png, .jpg, .webp).');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setFileUrl(reader.result);
-        setFileType(isPdf ? 'pdf' : 'image');
-        setFileName(file.name);
-        setFileSize((file.size / 1024).toFixed(1) + ' KB');
+    if (isPdf) {
+      if (file.size > 850 * 1024) {
+        setFileError(`PDF exceeds 850KB limit (${(file.size / 1024).toFixed(0)} KB). Please upload a compressed document.`);
+        return;
       }
-    };
-    reader.onerror = () => {
-      setFileError('Failed to read file from disk. Please try again.');
-    };
-    reader.readAsDataURL(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setFileUrl(reader.result);
+          setFileType('pdf');
+          setFileName(file.name);
+          setFileSize((file.size / 1024).toFixed(1) + ' KB');
+        }
+      };
+      reader.onerror = () => {
+        setFileError('Failed to read PDF from disk. Please try again.');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // Process and compress image to high-efficiency JPEG under 1200px max dimension
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const rawResult = event.target?.result as string;
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const maxDim = 1200;
+
+            if (width > height && width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressed = canvas.toDataURL('image/jpeg', 0.82);
+              setFileUrl(compressed);
+              setFileType('image');
+              setFileName(file.name);
+              setFileSize((Math.round(compressed.length * 0.75) / 1024).toFixed(1) + ' KB');
+              return;
+            }
+          } catch (err) {
+            console.warn('Canvas compression fallback:', err);
+          }
+          setFileUrl(rawResult);
+          setFileType('image');
+          setFileName(file.name);
+          setFileSize((file.size / 1024).toFixed(1) + ' KB');
+        };
+        img.onerror = () => {
+          setFileUrl(rawResult);
+          setFileType('image');
+          setFileName(file.name);
+          setFileSize((file.size / 1024).toFixed(1) + ' KB');
+        };
+        img.src = rawResult;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Reset input value to allow re-uploading same file name
+    e.target.value = '';
   };
 
   const handleClearFile = () => {
@@ -215,32 +268,86 @@ export const EmergencyAlertsView: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setEditFileError('File exceeds 5MB limit. Please upload a compressed document.');
-      return;
-    }
-
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    const isImg = file.type.startsWith('image/');
+    const isImg = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
 
     if (!isPdf && !isImg) {
-      setEditFileError('Unsupported file type. Please upload a PDF document or image (.png, .jpg).');
+      setEditFileError('Unsupported file type. Please upload a PDF document or image (.png, .jpg, .webp).');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setEditFileUrl(reader.result);
-        setEditFileType(isPdf ? 'pdf' : 'image');
-        setEditFileName(file.name);
-        setEditFileSize((file.size / 1024).toFixed(1) + ' KB');
+    if (isPdf) {
+      if (file.size > 850 * 1024) {
+        setEditFileError(`PDF exceeds 850KB limit (${(file.size / 1024).toFixed(0)} KB). Please upload a compressed document.`);
+        return;
       }
-    };
-    reader.onerror = () => {
-      setEditFileError('Failed to read file from disk. Please try again.');
-    };
-    reader.readAsDataURL(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setEditFileUrl(reader.result);
+          setEditFileType('pdf');
+          setEditFileName(file.name);
+          setEditFileSize((file.size / 1024).toFixed(1) + ' KB');
+        }
+      };
+      reader.onerror = () => {
+        setEditFileError('Failed to read PDF document from disk. Please try again.');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // Process and compress replacement image to high-efficiency JPEG under 1200px max dimension
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const rawResult = event.target?.result as string;
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const maxDim = 1200;
+
+            if (width > height && width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressed = canvas.toDataURL('image/jpeg', 0.82);
+              setEditFileUrl(compressed);
+              setEditFileType('image');
+              setEditFileName(file.name);
+              setEditFileSize((Math.round(compressed.length * 0.75) / 1024).toFixed(1) + ' KB');
+              return;
+            }
+          } catch (err) {
+            console.warn('Canvas compression fallback:', err);
+          }
+          setEditFileUrl(rawResult);
+          setEditFileType('image');
+          setEditFileName(file.name);
+          setEditFileSize((file.size / 1024).toFixed(1) + ' KB');
+        };
+        img.onerror = () => {
+          setEditFileUrl(rawResult);
+          setEditFileType('image');
+          setEditFileName(file.name);
+          setEditFileSize((file.size / 1024).toFixed(1) + ' KB');
+        };
+        img.src = rawResult;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Reset input value to allow re-uploading same file name
+    e.target.value = '';
   };
 
   const handleClearEditFile = () => {
@@ -587,7 +694,13 @@ export const EmergencyAlertsView: React.FC = () => {
                     const fileName = att.fileName || adv.fileName;
                     if (!fileUrl && !fileName) return null;
 
-                    const isPdf =
+                    const isImage =
+                      Boolean(fileUrl && fileUrl.startsWith('data:image/')) ||
+                      Boolean(fileName && /\.(png|jpe?g|webp|gif|svg)$/i.test(fileName)) ||
+                      att.fileType === 'image' ||
+                      adv.fileType === 'image';
+
+                    const isPdf = !isImage && (
                       att.fileType === 'pdf' ||
                       adv.fileType === 'pdf' ||
                       Boolean(
@@ -596,7 +709,8 @@ export const EmergencyAlertsView: React.FC = () => {
                             fileUrl.includes('.pdf') ||
                             fileUrl.startsWith('data:application/pdf'))
                       ) ||
-                      Boolean(fileName && fileName.toLowerCase().endsWith('.pdf'));
+                      Boolean(fileName && fileName.toLowerCase().endsWith('.pdf'))
+                    );
 
                     const displayName =
                       fileName || (isPdf ? 'SOE Belize.pdf' : 'advisory_bulletin.jpg');
@@ -1067,7 +1181,12 @@ export const EmergencyAlertsView: React.FC = () => {
       {/* MODAL 2: INSPECT ATTACHED PDF DOCUMENT OR FULL IMAGE */}
       {/* ========================================================================= */}
       {viewingFileAdvisory && (() => {
-        const isModalPdf =
+        const isModalImage =
+          Boolean(viewingFileAdvisory.fileUrl && viewingFileAdvisory.fileUrl.startsWith('data:image/')) ||
+          Boolean(viewingFileAdvisory.fileName && /\.(png|jpe?g|webp|gif|svg)$/i.test(viewingFileAdvisory.fileName)) ||
+          viewingFileAdvisory.fileType === 'image';
+
+        const isModalPdf = !isModalImage && (
           viewingFileAdvisory.fileType === 'pdf' ||
           Boolean(
             viewingFileAdvisory.fileUrl &&
@@ -1078,7 +1197,8 @@ export const EmergencyAlertsView: React.FC = () => {
           Boolean(
             viewingFileAdvisory.fileName &&
               viewingFileAdvisory.fileName.toLowerCase().endsWith('.pdf')
-          );
+          )
+        );
 
         return (
           <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
@@ -1339,9 +1459,18 @@ export const EmergencyAlertsView: React.FC = () => {
                 {editFileUrl || editFileName ? (
                   <div className="p-3 rounded-xl bg-[#0b1220] border border-[#d4af37]/50 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-[#1a2942] text-amber-300 border border-[#2a4575] flex items-center justify-center shrink-0">
-                        {editFileType === 'pdf' || editFileName.toLowerCase().endsWith('.pdf') ? (
+                      <div className="w-9 h-9 rounded-lg bg-[#1a2942] text-amber-300 border border-[#2a4575] flex items-center justify-center shrink-0 overflow-hidden">
+                        {editFileType === 'pdf' || (editFileName && editFileName.toLowerCase().endsWith('.pdf')) ? (
                           <FileText className="w-5 h-5 text-red-400" />
+                        ) : editFileUrl ? (
+                          <img
+                            src={editFileUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
                         ) : (
                           <ImageIcon className="w-5 h-5 text-amber-400" />
                         )}

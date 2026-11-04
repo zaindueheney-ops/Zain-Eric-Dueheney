@@ -131,40 +131,52 @@ export function resolveAdvisoryAttachment(adv: Partial<OfficialAdvisory>): {
   let fileName = adv.fileName;
   let fileType = adv.fileType;
 
-  const isSoe =
-    adv.id === 'adv_1793751515155_u8s4i' ||
-    (adv.title && /state\s*of\s*emergency|soe/i.test(adv.title)) ||
-    (fileName && /soe/i.test(fileName));
-
-  if (isSoe) {
-    if (!fileUrl) fileUrl = '/assets/aistudio/2026_61815f0c.pdf';
-    if (!fileName) fileName = 'SOE Belize.pdf';
-    fileType = 'pdf';
+  // If file was explicitly removed or cleared, return empty
+  if ((adv as any)?.fileRemoved || (adv.fileUrl === null && adv.fileName === null)) {
+    return { fileUrl: undefined, fileType: undefined, fileName: undefined };
   }
 
+  // 1. If an actual fileUrl or fileName is present, accurately classify its type
   if (fileUrl) {
     const lowerUrl = fileUrl.toLowerCase();
     const lowerName = (fileName || '').toLowerCase();
-    if (
-      lowerUrl.endsWith('.pdf') ||
-      lowerUrl.includes('.pdf') ||
-      lowerUrl.startsWith('data:application/pdf') ||
-      lowerName.endsWith('.pdf') ||
-      fileType === 'pdf'
-    ) {
-      fileType = 'pdf';
-      if (!fileName) fileName = isSoe ? 'SOE Belize.pdf' : 'Official_Advisory_Bulletin.pdf';
-    } else if (
+
+    const isExplicitImage =
       lowerUrl.startsWith('data:image/') ||
       lowerUrl.endsWith('.jpg') ||
       lowerUrl.endsWith('.jpeg') ||
       lowerUrl.endsWith('.png') ||
       lowerUrl.endsWith('.webp') ||
-      lowerName.match(/\.(jpg|jpeg|png|webp)$/) ||
-      fileType === 'image'
-    ) {
+      Boolean(lowerName.match(/\.(jpg|jpeg|png|webp|gif|svg)$/));
+
+    const isExplicitPdf =
+      !isExplicitImage && (
+        lowerUrl.endsWith('.pdf') ||
+        lowerUrl.includes('.pdf') ||
+        lowerUrl.startsWith('data:application/pdf') ||
+        lowerName.endsWith('.pdf')
+      );
+
+    if (isExplicitImage) {
       fileType = 'image';
-      if (!fileName) fileName = 'Bulletin_Attachment.jpg';
+      if (!fileName) fileName = 'Bulletin_Image.jpg';
+    } else if (isExplicitPdf) {
+      fileType = 'pdf';
+      if (!fileName) fileName = 'Official_Bulletin.pdf';
+    }
+  }
+
+  // 2. Only provide default SOE PDF if NO attachment was ever uploaded or configured,
+  // and the advisory has not been edited by an administrator
+  if (!fileUrl && !fileName && !(adv as any)?.fileRemoved && !adv.updatedAt) {
+    const isInitialSoe =
+      adv.id === 'adv_1793751515155_u8s4i' ||
+      (adv.title && /state\s*of\s*emergency/i.test(adv.title));
+
+    if (isInitialSoe) {
+      fileUrl = '/assets/aistudio/2026_61815f0c.pdf';
+      fileName = 'SOE Belize.pdf';
+      fileType = 'pdf';
     }
   }
 
@@ -525,20 +537,41 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (updates.fileUrl !== undefined) {
       if (updates.fileUrl) {
         merged.fileUrl = updates.fileUrl;
-        merged.fileType = updates.fileType || (updates.fileUrl.includes('.pdf') ? 'pdf' : 'image');
+        const lowerUrl = updates.fileUrl.toLowerCase();
+        const lowerName = (updates.fileName || '').toLowerCase();
+        const isImg =
+          lowerUrl.startsWith('data:image/') ||
+          lowerUrl.endsWith('.jpg') ||
+          lowerUrl.endsWith('.jpeg') ||
+          lowerUrl.endsWith('.png') ||
+          lowerUrl.endsWith('.webp') ||
+          Boolean(lowerName.match(/\.(jpg|jpeg|png|webp|gif|svg)$/));
+        const isPdf =
+          !isImg && (
+            lowerUrl.endsWith('.pdf') ||
+            lowerUrl.includes('.pdf') ||
+            lowerUrl.startsWith('data:application/pdf') ||
+            lowerName.endsWith('.pdf')
+          );
+
+        merged.fileType = isImg ? 'image' : (isPdf ? 'pdf' : (updates.fileType || 'image'));
         merged.fileName = updates.fileName || (merged.fileType === 'pdf' ? 'Official_Advisory_Bulletin.pdf' : 'advisory_image.jpg');
-      } else if (updates.fileUrl === null && (updates.fileName === null || updates.fileName === '')) {
+        delete (merged as any).fileRemoved;
+      } else if (updates.fileUrl === null || updates.fileUrl === '') {
         delete (merged as any).fileUrl;
         delete (merged as any).fileType;
         delete (merged as any).fileName;
+        (merged as any).fileRemoved = true;
       }
     }
 
-    // Resolve and safeguard attachment metadata so official documents are never corrupted
-    const resolvedAtt = resolveAdvisoryAttachment(merged);
-    if (resolvedAtt.fileUrl) merged.fileUrl = resolvedAtt.fileUrl;
-    if (resolvedAtt.fileType) merged.fileType = resolvedAtt.fileType;
-    if (resolvedAtt.fileName) merged.fileName = resolvedAtt.fileName;
+    // Only apply fallback if NO file attachment exists at all AND it was not removed AND not edited
+    if (!merged.fileUrl && !merged.fileName && !(merged as any).fileRemoved && !merged.updatedAt) {
+      const fallback = resolveAdvisoryAttachment(merged);
+      if (fallback.fileUrl) merged.fileUrl = fallback.fileUrl;
+      if (fallback.fileType) merged.fileType = fallback.fileType;
+      if (fallback.fileName) merged.fileName = fallback.fileName;
+    }
 
     if (updates.channels !== undefined) {
       merged.channels = updates.channels;

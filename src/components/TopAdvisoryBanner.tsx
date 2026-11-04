@@ -333,7 +333,13 @@ export const TopAdvisoryBanner: React.FC = () => {
     const att = resolveAdvisoryAttachment(adv);
     const fileUrl = att.fileUrl || adv.fileUrl;
     const fileName = att.fileName || adv.fileName;
-    const isPdf =
+    const isImage =
+      Boolean(fileUrl && fileUrl.startsWith('data:image/')) ||
+      Boolean(fileName && /\.(png|jpe?g|webp|gif|svg)$/i.test(fileName)) ||
+      att.fileType === 'image' ||
+      adv.fileType === 'image';
+
+    const isPdf = !isImage && (
       att.fileType === 'pdf' ||
       adv.fileType === 'pdf' ||
       Boolean(
@@ -342,12 +348,13 @@ export const TopAdvisoryBanner: React.FC = () => {
             fileUrl.includes('.pdf') ||
             fileUrl.startsWith('data:application/pdf'))
       ) ||
-      Boolean(fileName && fileName.toLowerCase().endsWith('.pdf'));
+      Boolean(fileName && fileName.toLowerCase().endsWith('.pdf'))
+    );
 
     const effectiveAdv: OfficialAdvisory = {
       ...adv,
       fileUrl: fileUrl || undefined,
-      fileType: isPdf ? 'pdf' : (att.fileType || adv.fileType || 'image'),
+      fileType: isImage ? 'image' : (isPdf ? 'pdf' : (att.fileType || adv.fileType || 'image')),
       fileName: fileName || (isPdf ? 'SOE Belize.pdf' : 'advisory_bulletin.jpg'),
     };
 
@@ -669,7 +676,12 @@ export const TopAdvisoryBanner: React.FC = () => {
 
       {/* MODAL 1: VIEW FULL-SIZE IMAGE OR EMBEDDED PDF */}
       {viewingFileAdvisory && (() => {
-        const isModalPdf =
+        const isModalImage =
+          Boolean(viewingFileAdvisory.fileUrl && viewingFileAdvisory.fileUrl.startsWith('data:image/')) ||
+          Boolean(viewingFileAdvisory.fileName && /\.(png|jpe?g|webp|gif|svg)$/i.test(viewingFileAdvisory.fileName)) ||
+          viewingFileAdvisory.fileType === 'image';
+
+        const isModalPdf = !isModalImage && (
           viewingFileAdvisory.fileType === 'pdf' ||
           Boolean(
             viewingFileAdvisory.fileUrl &&
@@ -680,7 +692,8 @@ export const TopAdvisoryBanner: React.FC = () => {
           Boolean(
             viewingFileAdvisory.fileName &&
               viewingFileAdvisory.fileName.toLowerCase().endsWith('.pdf')
-          );
+          )
+        );
 
         return (
           <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
