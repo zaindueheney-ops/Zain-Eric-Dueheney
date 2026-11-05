@@ -17,8 +17,13 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { BELIZE_DISTRICTS } from '../data/belizeGeo';
 
-export const WelcomeAuthModal: React.FC = () => {
+interface WelcomeAuthModalProps {
+  isStandaloneGate?: boolean;
+}
+
+export const WelcomeAuthModal: React.FC<WelcomeAuthModalProps> = ({ isStandaloneGate = false }) => {
   const {
+    user,
     showAuthGreetingModal,
     setShowAuthGreetingModal,
     signInWithEmail,
@@ -45,7 +50,8 @@ export const WelcomeAuthModal: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  if (!showAuthGreetingModal) return null;
+  // If user is already authenticated and modal wasn't explicitly triggered, hide it
+  if (user && !showAuthGreetingModal && !isStandaloneGate) return null;
 
   const handleGoogleAuth = async () => {
     setError(null);
@@ -199,21 +205,24 @@ export const WelcomeAuthModal: React.FC = () => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex min-h-screen w-full overflow-hidden bg-cover bg-center bg-no-repeat animate-in fade-in duration-300"
-      style={{
-        backgroundImage: "url('/assets/aistudio/Screenshot_2026-11-05_at_03.49.40_6baf66c6.png')",
-      }}
-    >
-      {/* Background Soft Transparent Overlay - Keeps background photograph clearly visible */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-black/10 pointer-events-none" />
+    <div className="fixed inset-0 z-50 flex min-h-screen w-full overflow-hidden bg-[#03060c] animate-in fade-in duration-300">
+      {/* Background Image with brightness reduced by half (50%) for a softer, comfortable tone */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat brightness-50 contrast-95 transition-all duration-700"
+        style={{
+          backgroundImage: "url('/assets/aistudio/Screenshot_2026-11-05_at_03.49.40_6baf66c6.png')",
+        }}
+      />
+
+      {/* Soft Ambient Overlay to blend background softly and comfortably */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/30 to-black/20 pointer-events-none" />
 
       {/* Main Full-Height Left Sidebar Panel - Transparent Glassmorphic Container */}
-      <div className="relative z-10 w-full max-w-[490px] sm:max-w-[470px] md:max-w-[490px] lg:max-w-[510px] h-full min-h-screen overflow-y-auto bg-black/20 backdrop-blur-md border-r border-white/20 p-6 sm:p-8 flex flex-col justify-between shadow-2xl text-white">
+      <div className="relative z-10 w-full max-w-[490px] sm:max-w-[470px] md:max-w-[490px] lg:max-w-[510px] h-full min-h-screen overflow-y-auto bg-black/25 backdrop-blur-md border-r border-white/20 p-6 sm:p-8 flex flex-col justify-between shadow-2xl text-white">
         
         {/* Top Header Section */}
         <div>
-          {/* Close / Dismiss Button */}
+          {/* Header Bar with Logo and Security Badge */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <img
@@ -231,14 +240,25 @@ export const WelcomeAuthModal: React.FC = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowAuthGreetingModal(false)}
-              className="p-1.5 rounded-full text-white/80 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm transition cursor-pointer"
-              title="Close and return to dashboard"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {/* When not logged in, login is mandatory and exiting is prevented */}
+            {user ? (
+              <button
+                type="button"
+                onClick={() => setShowAuthGreetingModal(false)}
+                className="p-1.5 rounded-full text-white/80 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm transition cursor-pointer"
+                title="Close and return to dashboard"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            ) : (
+              <div
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-[10px] font-extrabold text-amber-300 shadow-sm backdrop-blur-sm select-none"
+                title="Access restricted: You must sign in or register to use Belize Alerts"
+              >
+                <Lock className="w-3 h-3 text-amber-300" />
+                <span className="uppercase tracking-wider">Login Required</span>
+              </div>
+            )}
           </div>
 
           <p className="text-xs text-white/90 font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">

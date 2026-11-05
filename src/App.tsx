@@ -38,7 +38,7 @@ import { MessageSquare, AlertTriangle, Shield } from 'lucide-react';
 import { BelizeDistrict } from './types';
 
 function MainEmergencyCommandApp() {
-  const { user, profile, isAdmin, setShowAuthGreetingModal, setShowRegisterModal } = useAuth();
+  const { user, profile, loading, isAdmin, setShowAuthGreetingModal, setShowRegisterModal } = useAuth();
   const { incidents, selectedIncident, setSelectedIncident } = useIncidents();
   const { activeTab, sidebarCollapsed } = useCommand();
   const { setIsChatOpen, unreadCount } = useChat();
@@ -47,6 +47,33 @@ function MainEmergencyCommandApp() {
   const [reportInitialCoords, setReportInitialCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [reportInitialDistrict, setReportInitialDistrict] = useState<BelizeDistrict | undefined>(undefined);
   const [isCurrentLocationReport, setIsCurrentLocationReport] = useState(false);
+
+  // Verification state while checking credentials
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#03060c] flex flex-col items-center justify-center text-white gap-3 p-4">
+        <div className="relative">
+          <img
+            src="/assets/aistudio/image_ff7e619e.png"
+            alt="Belize Alerts"
+            className="w-16 h-16 rounded-2xl object-cover border border-[#d4af37] shadow-2xl animate-pulse"
+          />
+        </div>
+        <div className="text-center">
+          <h1 className="font-black text-sm text-white tracking-wider">BELIZE ALERTS</h1>
+          <p className="text-[10px] text-[#f3c853] font-bold tracking-widest mt-0.5 uppercase">
+            Securing Dispatch Gateway...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Strict Security Gate: No one can use the application without logging in.
+  // Exiting the portal does not log you in, and access is strictly gated until authenticated.
+  if (!user) {
+    return <WelcomeAuthModal isStandaloneGate={true} />;
+  }
 
   // Active view renderer
   const renderCurrentView = () => {
@@ -97,7 +124,7 @@ function MainEmergencyCommandApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060a12] text-white flex flex-col font-sans selection:bg-[#d4af37] selection:text-black">
+    <div className="min-h-screen bg-[#03060c] text-white flex flex-col font-sans selection:bg-[#d4af37] selection:text-black">
       {/* 15-Item Navigation Sidebar */}
       <CommandSidebar />
 
