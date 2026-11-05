@@ -13,6 +13,7 @@ import {
 import { NmsChiefMeteorologistModal } from './NmsChiefMeteorologistModal';
 import {
   syncDailyNmsWeather,
+  subscribeToCloudWeather,
   getCachedGeneralForecast,
   getCachedMarineForecast,
   getNmsSyncMeta,
@@ -56,7 +57,7 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
     }
   }, []);
 
-  // Initial load + periodic daily re-sync every 15 minutes + window focus check
+  // Initial load + periodic daily re-sync every 15 minutes + window focus check + cloud real-time sync
   useEffect(() => {
     loadData();
 
@@ -80,10 +81,19 @@ export const ChiefMeteorologistSideWidget: React.FC<ChiefMeteorologistSideWidget
     };
     window.addEventListener('nms-daily-weather-synced', onSyncEvent);
 
+    // Cross-domain real-time cloud listener from Firestore
+    const unsubCloud = subscribeToCloudWeather((cloudData) => {
+      setGeneralForecast(cloudData.general);
+      setMarineForecast(cloudData.marine);
+      setSyncMeta(cloudData.syncMeta);
+      setIsLive(true);
+    });
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('nms-daily-weather-synced', onSyncEvent);
+      unsubCloud();
     };
   }, [loadData]);
 

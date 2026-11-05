@@ -70,6 +70,15 @@ export interface NmsMarineForecast {
   max_temperature?: number;
   min_temperature?: number;
   advisory?: string | null;
+  marine_details?: Array<{
+    id: number;
+    marine_category: string;
+    wind_direction_m2m?: string[];
+    wind_speed?: string;
+    sea_state_m2m?: string[];
+    waves?: string;
+    additional_info?: string;
+  }>;
   tide_details?: Array<{
     id: number;
     tide_level_category: string; // 'High' | 'Low'
@@ -103,19 +112,22 @@ export interface NmsSyncMeta {
   marineSourceUrl: string;
 }
 
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
+
 // Verified live baseline from https://nms.gov.bz/forecast/general-weather-forecast/
 export const FALLBACK_NMS_GENERAL_FORECAST: NmsGeneralForecast = {
-  id: 8094,
-  forecast_date: '2026-11-04',
-  forecast_time: '06:00:00',
-  forecast_category: 'Morning Forecast',
-  general_situation: 'MAINLY FAIR WEATHER CONDITIONS PREVAIL OVER THE AREA...',
+  id: 8098,
+  forecast_date: '2026-11-05',
+  forecast_time: '12:00:00',
+  forecast_category: 'Afternoon Forecast',
+  general_situation: 'FAIR AND MOSTLY DRY WEATHER CONDITIONS PREVAIL...',
   twenty_four_hour_forecast:
-    'SUNNY WITH A FEW CLOUDY SPELLS TODAY AND PARTLY CLOUDY SKIES TONIGHT. SHOWERS WILL BE GENERALLY ISOLATED.',
+    'SUNNY WITH CLOUDY SPELLS THIS AFTERNOON AND A MEDIUM CHANCE OF A FEW SHOWERS AND ISOLATED THUNDERSTORMS INLAND. PARTLY CLOUDY TONIGHT WITH ISOLATED SHOWERS; THEN CLOUDY AT TIMES TOMORROW MORNING, AS A FEW SHOWERS AND ISOLATED THUNDERSTORMS ARE POSSIBLE ALONG THE COAST. ELSEWHERE, ONLY ISOLATED SHOWERS ARE EXPECTED.',
   outlook:
-    '(THURSDAY & THURSDAY NIGHT)- IS FOR FAIR AND MOSTLY DRY CONDITIONS. SHOWERS, IF ANY, WILL BE ISOLATED.',
+    'A FEW SHOWERS AND ISOLATED THUNDERSTORMS ARE LIKELY TO OCCUR INLAND ON FRIDAY AFTERNOON AND EVENING, THEN MOSTLY OVER NORTHERN AND CENTRAL COASTAL AREAS ON FRIDAY NIGHT AND SATURDAY MORNING.',
   wind_speed: '5-10 kts',
-  wind_direction_m2m: ['N', 'NE'],
+  wind_direction_m2m: ['NE'],
   sea_state_m2m: ['Slight'],
   wave: '1-3 ft',
   coast_high_f: 88,
@@ -124,48 +136,77 @@ export const FALLBACK_NMS_GENERAL_FORECAST: NmsGeneralForecast = {
   coast_low_c: 24,
   inland_high_f: 92,
   inland_high_c: 33,
-  inland_low_f: 70,
+  inland_low_f: 69,
   inland_low_c: 21,
   hills_high_f: 80,
   hills_high_c: 27,
-  hills_low_f: 66,
-  hills_low_c: 19,
+  hills_low_f: 64,
+  hills_low_c: 18,
   advisory: null,
-  pdf_file: 'https://wimp3.nms.gov.bz/media/forecast/general/doc/General_Forecast_2026-11-04_0600_AM_NMS_BZ.pdf',
-  audio_file: 'https://wimp3.nms.gov.bz/media/forecast/general/audio/2026-11-04_0600_AM_NMS_BZ.mp3',
-  created_by: 'Duty Forecaster Tareek Matthews under Chief Meteorologist Ronald Gordon',
-  created_datetime: '2026-11-03T22:06:48-06:00',
-  updated_datetime: '2026-11-04T06:02:23-06:00',
+  pdf_file: 'https://wimp3.nms.gov.bz/media/forecast/general/doc/General_Forecast_2026-11-05_1200_PM_NMS_BZ.pdf',
+  audio_file: 'https://wimp3.nms.gov.bz/media/forecast/general/audio/2026-11-05_1200_PM_NMS_BZ.mp3',
+  created_by: 'Forecaster Michelle Augustine under Chief Meteorologist Ronald Gordon',
+  created_datetime: '2026-11-05T09:06:27-06:00',
+  updated_datetime: '2026-11-05T12:08:22-06:00',
 };
 
 export const FALLBACK_NMS_MARINE_FORECAST: NmsMarineForecast = {
-  id: 5416,
-  forecast_date: '2026-11-04',
-  forecast_time: '05:30:00',
-  forecast_category: 'Morning Marine Forecast',
-  synopsis: 'A LIGHT AND SOMEWHAT DRY AIRFLOW PREVAILS OVER THE AREA...',
+  id: 5419,
+  forecast_date: '2026-11-05',
+  forecast_time: '17:30:00',
+  forecast_category: 'Evening Forecast',
+  synopsis: 'A LIGHT AND RELATIVELY DRY AIRFLOW PREVAILS.',
   sea_surface_temperature: 85,
   max_temperature: 88,
   min_temperature: 76,
   advisory: null,
+  marine_details: [
+    {
+      id: 18749,
+      marine_category: 'Tonight',
+      wind_direction_m2m: ['NE', 'E'],
+      wind_speed: '5-10',
+      sea_state_m2m: ['Slight'],
+      waves: '1-3',
+      additional_info: 'ISOLATED SHOWERS.',
+    },
+    {
+      id: 18750,
+      marine_category: 'Tomorrow',
+      wind_direction_m2m: ['NE', 'E'],
+      wind_speed: '5-10',
+      sea_state_m2m: ['Slight'],
+      waves: '1-3',
+      additional_info: 'ISOLATED SHOWERS.',
+    },
+    {
+      id: 18751,
+      marine_category: 'Tomorrow Night',
+      wind_direction_m2m: ['NE', 'E'],
+      wind_speed: '5-10',
+      sea_state_m2m: ['Slight'],
+      waves: '1-3',
+      additional_info: 'ISOLATED SHOWERS; A FEW MORE NORTH AND CENTRAL.',
+    },
+  ],
   tide_details: [
-    { id: 44310, tide_level_category: 'High', tide_day_category: 'Today', tide_time: '06:12 AM' },
-    { id: 44311, tide_level_category: 'Low', tide_day_category: 'Today', tide_time: '12:40 PM' },
-    { id: 44312, tide_level_category: 'High', tide_day_category: 'Today', tide_time: '06:48 PM' },
-    { id: 44313, tide_level_category: 'Low', tide_day_category: 'Tomorrow', tide_time: '01:07 AM' },
+    { id: 44322, tide_level_category: 'High', tide_day_category: 'Today', tide_time: '07:23 PM' },
+    { id: 44323, tide_level_category: 'Low', tide_day_category: 'Tomorrow', tide_time: '02:04 AM' },
+    { id: 44324, tide_level_category: 'High', tide_day_category: 'Tomorrow', tide_time: '08:15 AM' },
+    { id: 44325, tide_level_category: 'Low', tide_day_category: 'Tomorrow', tide_time: '01:53 PM' },
   ],
   sun_details: [
-    { id: 19823, sun_move_category: 'Sunrise', sun_day_category: 'Today', sun_time: '05:52 AM' },
-    { id: 19824, sun_move_category: 'Sunset', sun_day_category: 'Today', sun_time: '05:19 PM' },
+    { id: 19829, sun_move_category: 'Sunrise', sun_day_category: 'Tomorrow', sun_time: '05:53 AM' },
+    { id: 19830, sun_move_category: 'Sunset', sun_day_category: 'Tomorrow', sun_time: '05:18 PM' },
   ],
   moon_details: [
-    { id: 19769, moon_move_category: 'Moonrise', moon_day_category: 'Tomorrow', moon_time: '02:40 AM' },
-    { id: 19770, moon_move_category: 'Moonset', moon_day_category: 'Today', moon_time: '02:18 PM' },
+    { id: 19775, moon_move_category: 'Moonrise', moon_day_category: 'Tomorrow', moon_time: '03:32 AM' },
+    { id: 19776, moon_move_category: 'Moonset', moon_day_category: 'Tomorrow', moon_time: '03:30 PM' },
   ],
-  pdf_file: 'https://wimp3.nms.gov.bz/media/forecast/marine/doc/Marine_Forecast_2026-11-04_0530_AM_NMS_BZ.pdf',
-  created_by: 'Tareek Matthews (Marine Weather Section / Chief Meteorologist Desk)',
-  created_datetime: '2026-11-03T22:13:04-06:00',
-  updated_datetime: '2026-11-04T05:30:22-06:00',
+  pdf_file: 'https://wimp3.nms.gov.bz/media/forecast/marine/doc/Marine_Forecast_2026-11-05_0530_PM_NMS_BZ.pdf',
+  created_by: 'Catherine Cumberbatch (Marine Weather Section / Chief Meteorologist Desk)',
+  created_datetime: '2026-11-05T16:59:51-06:00',
+  updated_datetime: '2026-11-05T17:30:03-06:00',
 };
 
 const LOCAL_STORAGE_GENERAL_KEY = 'belize_nms_general_forecast_daily';
@@ -237,6 +278,104 @@ function saveNmsSyncMeta(meta: NmsSyncMeta) {
 }
 
 /**
+ * Save weather data to Firebase Firestore so all domains, mobile devices, and preview environments
+ * immediately share the exact same synchronized weather forecast.
+ */
+export async function persistWeatherToCloud(
+  general: NmsGeneralForecast,
+  marine: NmsMarineForecast,
+  syncMeta: NmsSyncMeta
+): Promise<void> {
+  try {
+    const weatherDocRef = doc(db, 'system_settings', 'nms_weather');
+    await setDoc(
+      weatherDocRef,
+      {
+        general,
+        marine,
+        syncMeta,
+        syncedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn('Could not persist NMS weather to Cloud Firestore:', err);
+  }
+}
+
+/**
+ * Fetch latest synchronized weather data from Cloud Firestore (cross-domain).
+ */
+export async function fetchWeatherFromCloud(): Promise<{
+  general?: NmsGeneralForecast;
+  marine?: NmsMarineForecast;
+  syncMeta?: NmsSyncMeta;
+} | null> {
+  try {
+    const snap = await getDoc(doc(db, 'system_settings', 'nms_weather'));
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data?.general && data.general.forecast_date) {
+        return data as any;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read NMS weather from Cloud Firestore:', err);
+  }
+  return null;
+}
+
+/**
+ * Real-time listener for cross-domain weather synchronization.
+ * Whenever any domain or background job synchronizes NMS weather, all other domains update in real-time.
+ */
+export function subscribeToCloudWeather(
+  onUpdate: (data: { general: NmsGeneralForecast; marine: NmsMarineForecast; syncMeta: NmsSyncMeta }) => void
+): () => void {
+  try {
+    return onSnapshot(
+      doc(db, 'system_settings', 'nms_weather'),
+      (snap) => {
+        if (snap.exists()) {
+          const d = snap.data();
+          if (d?.general && d?.marine) {
+            try {
+              localStorage.setItem(LOCAL_STORAGE_GENERAL_KEY, JSON.stringify(d.general));
+              localStorage.setItem(LOCAL_STORAGE_MARINE_KEY, JSON.stringify(d.marine));
+              if (d.syncMeta) saveNmsSyncMeta(d.syncMeta);
+            } catch (e) {}
+
+            onUpdate({
+              general: d.general,
+              marine: d.marine,
+              syncMeta: d.syncMeta || getNmsSyncMeta(),
+            });
+
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('nms-daily-weather-synced', {
+                  detail: {
+                    general: d.general,
+                    marine: d.marine,
+                    syncMeta: d.syncMeta,
+                  },
+                })
+              );
+            }
+          }
+        }
+      },
+      (error) => {
+        console.warn('Cloud weather onSnapshot notice:', error);
+      }
+    );
+  } catch (err) {
+    console.warn('Could not subscribe to cloud weather:', err);
+    return () => {};
+  }
+}
+
+/**
  * Fetch live General Weather Forecast from the National Meteorological Service of Belize.
  * Target: https://nms.gov.bz/forecast/general-weather-forecast/
  */
@@ -245,6 +384,7 @@ export async function fetchNmsGeneralForecast(): Promise<{
   isLive: boolean;
   sourceUrl: string;
 }> {
+  // 1. Try local dev proxy if available (Vite dev server)
   try {
     const res = await fetch('/api/nms/general-weather-forecast/', {
       headers: { Accept: 'application/json' },
@@ -283,13 +423,28 @@ export async function fetchNmsGeneralForecast(): Promise<{
       }
     }
   } catch (err) {
-    console.warn('Could not query /api/nms/general-weather-forecast/, using verified baseline:', err);
+    // Expected on other domain / production environments without local dev proxy
   }
 
+  // 2. Query Cloud Firestore (shared across all domains, bypasses CORS)
+  const cloud = await fetchWeatherFromCloud();
+  if (cloud && cloud.general && cloud.general.forecast_date) {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_GENERAL_KEY, JSON.stringify(cloud.general));
+    } catch (e) {}
+    if (cloud.syncMeta) saveNmsSyncMeta(cloud.syncMeta);
+    return {
+      data: cloud.general,
+      isLive: true,
+      sourceUrl: NMS_OFFICIAL_URLS.generalForecast,
+    };
+  }
+
+  // 3. Fallback to cached or latest verified baseline
   const cached = getCachedGeneralForecast();
   return {
     data: cached,
-    isLive: cached.id === 8094,
+    isLive: cached.id === 8098,
     sourceUrl: NMS_OFFICIAL_URLS.generalForecast,
   };
 }
@@ -303,6 +458,7 @@ export async function fetchNmsMarineForecast(): Promise<{
   isLive: boolean;
   sourceUrl: string;
 }> {
+  // 1. Try local dev proxy if available
   try {
     const res = await fetch('/api/nms/marine-forecast/', {
       headers: { Accept: 'application/json' },
@@ -310,7 +466,7 @@ export async function fetchNmsMarineForecast(): Promise<{
     if (res.ok) {
       const json = await res.json();
       const entry = Array.isArray(json) ? json[0] : json;
-      if (entry && (entry.synopsis || entry.tide_details)) {
+      if (entry && (entry.synopsis || entry.tide_details || entry.marine_details)) {
         if (entry.pdf_file && entry.pdf_file.startsWith('/')) {
           entry.pdf_file = `https://wimp3.nms.gov.bz${entry.pdf_file}`;
         }
@@ -327,13 +483,27 @@ export async function fetchNmsMarineForecast(): Promise<{
       }
     }
   } catch (err) {
-    console.warn('Could not query /api/nms/marine-forecast/, using verified baseline:', err);
+    // Expected on other domain / production
   }
 
+  // 2. Query Cloud Firestore (shared across all domains)
+  const cloud = await fetchWeatherFromCloud();
+  if (cloud && cloud.marine && cloud.marine.forecast_date) {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_MARINE_KEY, JSON.stringify(cloud.marine));
+    } catch (e) {}
+    return {
+      data: cloud.marine,
+      isLive: true,
+      sourceUrl: NMS_OFFICIAL_URLS.marineForecast,
+    };
+  }
+
+  // 3. Fallback to cached or latest verified baseline
   const cached = getCachedMarineForecast();
   return {
     data: cached,
-    isLive: cached.id === 5416,
+    isLive: cached.id === 5419,
     sourceUrl: NMS_OFFICIAL_URLS.marineForecast,
   };
 }
@@ -341,6 +511,7 @@ export async function fetchNmsMarineForecast(): Promise<{
 /**
  * Performs complete daily synchronization with https://nms.gov.bz/forecast/general-weather-forecast/
  * and fires custom event so all views and banners update reactively.
+ * Also persists to Cloud Firestore so all other domains receive the update.
  */
 export async function syncDailyNmsWeather(): Promise<{
   general: NmsGeneralForecast;
@@ -361,6 +532,9 @@ export async function syncDailyNmsWeather(): Promise<{
     marineSourceUrl: NMS_OFFICIAL_URLS.marineForecast,
   };
   saveNmsSyncMeta(syncMeta);
+
+  // Persist to Cloud Firestore so all other domains immediately receive the fresh weather
+  persistWeatherToCloud(genResult.data, marResult.data, syncMeta).catch(() => {});
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(

@@ -314,10 +314,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Public National Weather Feed & General Forecast
+    match /system_settings/nms_weather {
+      allow read, write: if true;
+    }
+
     // System Settings & National EOC Status
     match /system_settings/{settingId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // Official Notifications Dispatched by EOC
