@@ -205,27 +205,27 @@ export const WelcomeAuthModal: React.FC = () => {
         backgroundImage: "url('/assets/aistudio/Screenshot_2026-11-05_at_03.49.40_6baf66c6.png')",
       }}
     >
-      {/* Background Dark Wash Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/35 pointer-events-none" />
+      {/* Background Soft Transparent Overlay - Keeps background photograph clearly visible */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-black/10 pointer-events-none" />
 
-      {/* Main Full-Height Left Sidebar Panel */}
-      <div className="relative z-10 w-full max-w-[490px] sm:max-w-[470px] md:max-w-[490px] lg:max-w-[510px] h-full min-h-screen overflow-y-auto bg-black/75 backdrop-blur-xl border-r border-white/10 p-6 sm:p-8 flex flex-col justify-between shadow-2xl text-white">
+      {/* Main Full-Height Left Sidebar Panel - Transparent Glassmorphic Container */}
+      <div className="relative z-10 w-full max-w-[490px] sm:max-w-[470px] md:max-w-[490px] lg:max-w-[510px] h-full min-h-screen overflow-y-auto bg-black/20 backdrop-blur-md border-r border-white/20 p-6 sm:p-8 flex flex-col justify-between shadow-2xl text-white">
         
         {/* Top Header Section */}
         <div>
           {/* Close / Dismiss Button */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <img
                 src="/assets/aistudio/image_ff7e619e.png"
                 alt="Belize Alerts Logo"
-                className="w-12 h-12 rounded-2xl object-cover bg-black/40 p-0.5 border border-[#d4af37] shadow-xl shrink-0"
+                className="w-12 h-12 rounded-2xl object-cover bg-white/10 backdrop-blur-sm p-0.5 border border-[#d4af37] shadow-xl shrink-0"
               />
               <div className="text-left leading-tight">
-                <h1 className="font-black text-lg sm:text-xl text-white tracking-wider leading-none">
+                <h1 className="font-black text-lg sm:text-xl text-white tracking-wider leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
                   BELIZE ALERTS
                 </h1>
-                <p className="text-[11px] font-bold text-[#d4af37] tracking-[0.18em] uppercase mt-1">
+                <p className="text-[11px] font-extrabold text-[#f3c853] tracking-[0.2em] uppercase mt-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                   BY ZAIN DUEHENEY
                 </p>
               </div>
@@ -234,34 +234,34 @@ export const WelcomeAuthModal: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowAuthGreetingModal(false)}
-              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              className="p-1.5 rounded-full text-white/80 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm transition cursor-pointer"
               title="Close and return to dashboard"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <p className="text-[11px] text-slate-300 font-medium">
+          <p className="text-xs text-white/90 font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
             National Emergency Operations & Disaster Risk Reduction Platform
           </p>
 
           {/* Eyebrow & Title */}
-          <div className="mt-6">
-            <span className="text-[10px] font-black tracking-widest text-[#d4af37] uppercase block">
+          <div className="mt-5">
+            <span className="text-[11px] font-black tracking-widest text-[#f3c853] uppercase block drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
               {mode === 'login' ? 'CENTRAL DISPATCH AUTHENTICATION' : 'CENTRAL DISPATCH REGISTRATION'}
             </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-black text-white mt-1">
+            <h2 className="font-serif text-2xl sm:text-3xl font-black text-white mt-1 drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
               {mode === 'login' ? 'Sign In to Portal' : 'Create Portal Account'}
             </h2>
-            <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+            <p className="text-xs text-white/95 mt-1.5 leading-relaxed font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
               {mode === 'login'
                 ? 'Please sign in using your verified email address to access the emergency operations dashboard.'
                 : 'Register your account to access official incident dispatch, emergency advisories, and responder alerts.'}
             </p>
           </div>
 
-          {/* Segmented Pill Switcher (Sign In / Create Account) */}
-          <div className="mt-5 grid grid-cols-2 p-1 rounded-full bg-black/60 border border-white/15">
+          {/* Segmented Pill Switcher (Sign In / Create Account) - Transparent Glass */}
+          <div className="mt-5 grid grid-cols-2 p-1 rounded-full bg-black/25 backdrop-blur-md border border-white/25 shadow-inner">
             <button
               type="button"
               onClick={() => {
@@ -269,10 +269,10 @@ export const WelcomeAuthModal: React.FC = () => {
                 setError(null);
                 setResetMessage(null);
               }}
-              className={`py-2 text-xs font-black rounded-full transition ${
+              className={`py-2 text-xs font-black rounded-full transition cursor-pointer ${
                 mode === 'login'
-                  ? 'bg-[#d4af37] text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-gradient-to-r from-[#d4af37] to-[#e6bc3b] text-slate-950 shadow-md'
+                  : 'text-white hover:text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]'
               }`}
             >
               Sign In
@@ -285,10 +285,10 @@ export const WelcomeAuthModal: React.FC = () => {
                 setError(null);
                 setResetMessage(null);
               }}
-              className={`py-2 text-xs font-black rounded-full transition ${
+              className={`py-2 text-xs font-black rounded-full transition cursor-pointer ${
                 mode === 'signup'
-                  ? 'bg-[#d4af37] text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-gradient-to-r from-[#d4af37] to-[#e6bc3b] text-slate-950 shadow-md'
+                  : 'text-white hover:text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]'
               }`}
             >
               Create Account
@@ -300,7 +300,7 @@ export const WelcomeAuthModal: React.FC = () => {
             type="button"
             onClick={handleGoogleAuth}
             disabled={isGoogleLoading || isSubmitting}
-            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-full bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs shadow-md transition disabled:opacity-50 mt-4 cursor-pointer"
+            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-full bg-white/95 hover:bg-white text-slate-900 font-bold text-xs shadow-lg backdrop-blur-sm transition disabled:opacity-50 mt-4 cursor-pointer"
           >
             {isGoogleLoading ? (
               <Loader2 className="w-4 h-4 animate-spin text-slate-700" />
@@ -327,22 +327,22 @@ export const WelcomeAuthModal: React.FC = () => {
             <span>Continue with Google Sign-In</span>
           </button>
 
-          {/* Divider */}
+          {/* Divider with Transparent Glass Badge */}
           <div className="relative my-4 text-center">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/15" />
+              <div className="w-full border-t border-white/25" />
             </div>
-            <span className="relative px-3 py-0.5 bg-[#161a22] text-[9px] font-black uppercase tracking-wider text-slate-300 rounded-full border border-white/10">
+            <span className="relative px-3.5 py-0.5 bg-black/30 backdrop-blur-md text-[9px] font-black uppercase tracking-wider text-amber-200 rounded-full border border-white/20 shadow-md">
               OR WITH EMAIL ADDRESS
             </span>
           </div>
 
           {/* Feedback Messages */}
           {error && (
-            <div className="mb-3 p-3 bg-red-950/80 border border-red-500/70 rounded-xl text-xs text-red-100 flex items-start gap-2 shadow-inner">
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <div className="mb-3 p-3 bg-red-950/50 backdrop-blur-md border border-red-400/80 rounded-xl text-xs text-white flex items-start gap-2 shadow-lg drop-shadow">
+              <AlertCircle className="w-4 h-4 text-red-300 shrink-0 mt-0.5" />
               <div className="flex-1 space-y-1">
-                <p className="leading-relaxed font-medium">{error}</p>
+                <p className="leading-relaxed font-semibold">{error}</p>
                 {mode === 'login' && error.includes('Create Account') && (
                   <button
                     type="button"
@@ -361,9 +361,9 @@ export const WelcomeAuthModal: React.FC = () => {
           )}
 
           {resetMessage && (
-            <div className="mb-3 p-3 bg-emerald-950/80 border border-emerald-500/60 rounded-xl text-xs text-emerald-200 flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span>{resetMessage}</span>
+            <div className="mb-3 p-3 bg-emerald-950/50 backdrop-blur-md border border-emerald-400/80 rounded-xl text-xs text-emerald-100 flex items-start gap-2 shadow-lg drop-shadow">
+              <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" />
+              <span className="font-semibold">{resetMessage}</span>
             </div>
           )}
 
@@ -374,35 +374,35 @@ export const WelcomeAuthModal: React.FC = () => {
               <>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300 mb-1">
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-amber-300 mb-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                       First Name *
                     </label>
-                    <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
-                      <User className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
+                    <div className="relative rounded-xl bg-black/25 backdrop-blur-md border border-white/30 focus-within:border-amber-400 focus-within:bg-black/35 focus-within:ring-2 focus-within:ring-amber-400/20 transition shadow-inner">
+                      <User className="w-4 h-4 text-amber-300 absolute left-3 top-2.5" />
                       <input
                         type="text"
                         required
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         placeholder="John"
-                        className="w-full pl-9 pr-3 py-2 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
+                        className="w-full pl-9 pr-3 py-2 bg-transparent text-xs text-white font-semibold placeholder:text-white/60 focus:outline-none drop-shadow-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300 mb-1">
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-amber-300 mb-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                       Last Name *
                     </label>
-                    <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
-                      <User className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
+                    <div className="relative rounded-xl bg-black/25 backdrop-blur-md border border-white/30 focus-within:border-amber-400 focus-within:bg-black/35 focus-within:ring-2 focus-within:ring-amber-400/20 transition shadow-inner">
+                      <User className="w-4 h-4 text-amber-300 absolute left-3 top-2.5" />
                       <input
                         type="text"
                         required
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Smith"
-                        className="w-full pl-9 pr-3 py-2 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
+                        className="w-full pl-9 pr-3 py-2 bg-transparent text-xs text-white font-semibold placeholder:text-white/60 focus:outline-none drop-shadow-sm"
                       />
                     </div>
                   </div>
@@ -411,32 +411,32 @@ export const WelcomeAuthModal: React.FC = () => {
                 {/* Contact Phone & District */}
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300 mb-1">
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-amber-300 mb-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                       Phone Number *
                     </label>
-                    <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
-                      <Phone className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
+                    <div className="relative rounded-xl bg-black/25 backdrop-blur-md border border-white/30 focus-within:border-amber-400 focus-within:bg-black/35 focus-within:ring-2 focus-within:ring-amber-400/20 transition shadow-inner">
+                      <Phone className="w-4 h-4 text-amber-300 absolute left-3 top-2.5" />
                       <input
                         type="tel"
                         required
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="610-1234"
-                        className="w-full pl-9 pr-3 py-2 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
+                        className="w-full pl-9 pr-3 py-2 bg-transparent text-xs text-white font-semibold placeholder:text-white/60 focus:outline-none drop-shadow-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300 mb-1">
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-amber-300 mb-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                       District *
                     </label>
-                    <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
-                      <MapPin className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
+                    <div className="relative rounded-xl bg-black/25 backdrop-blur-md border border-white/30 focus-within:border-amber-400 focus-within:bg-black/35 focus-within:ring-2 focus-within:ring-amber-400/20 transition shadow-inner">
+                      <MapPin className="w-4 h-4 text-amber-300 absolute left-3 top-2.5" />
                       <select
                         value={district}
                         onChange={(e) => setDistrict(e.target.value)}
-                        className="w-full pl-9 pr-2 py-2 bg-transparent text-xs text-white focus:outline-none"
+                        className="w-full pl-9 pr-2 py-2 bg-transparent text-xs text-white font-semibold focus:outline-none cursor-pointer"
                       >
                         {BELIZE_DISTRICTS.map((d) => (
                           <option key={d.id} value={d.id} className="bg-[#121c2e] text-white">
@@ -452,18 +452,18 @@ export const WelcomeAuthModal: React.FC = () => {
 
             {/* Email Address Field */}
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300 mb-1">
+              <label className="block text-[11px] font-black uppercase tracking-wider text-amber-300 mb-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                 EMAIL ADDRESS *
               </label>
-              <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
-                <Mail className="w-4 h-4 text-[#d4af37] absolute left-3.5 top-3" />
+              <div className="relative rounded-xl bg-black/25 backdrop-blur-md border border-white/30 focus-within:border-amber-400 focus-within:bg-black/35 focus-within:ring-2 focus-within:ring-amber-400/20 transition shadow-inner">
+                <Mail className="w-4 h-4 text-amber-300 absolute left-3.5 top-3" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com or personal email"
-                  className="w-full pl-10 pr-3 py-2.5 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
+                  className="w-full pl-10 pr-3 py-2.5 bg-transparent text-xs text-white font-semibold placeholder:text-white/60 focus:outline-none drop-shadow-sm"
                 />
               </div>
             </div>
@@ -471,33 +471,33 @@ export const WelcomeAuthModal: React.FC = () => {
             {/* Password Field */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300">
+                <label className="block text-[11px] font-black uppercase tracking-wider text-amber-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                   PASSWORD *
                 </label>
                 {mode === 'login' && (
                   <button
                     type="button"
                     onClick={handlePasswordReset}
-                    className="text-[10px] text-[#d4af37] hover:text-amber-300 font-bold hover:underline"
+                    className="text-xs text-amber-300 hover:text-amber-200 font-bold hover:underline drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] cursor-pointer"
                   >
                     Forgot Password?
                   </button>
                 )}
               </div>
-              <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
-                <Lock className="w-4 h-4 text-[#d4af37] absolute left-3.5 top-3" />
+              <div className="relative rounded-xl bg-black/25 backdrop-blur-md border border-white/30 focus-within:border-amber-400 focus-within:bg-black/35 focus-within:ring-2 focus-within:ring-amber-400/20 transition shadow-inner">
+                <Lock className="w-4 h-4 text-amber-300 absolute left-3.5 top-3" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full pl-10 pr-10 py-2.5 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
+                  className="w-full pl-10 pr-10 py-2.5 bg-transparent text-xs text-white font-semibold placeholder:text-white/60 focus:outline-none drop-shadow-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3 text-slate-400 hover:text-white transition"
+                  className="absolute right-3.5 top-3 text-white/80 hover:text-white transition cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -508,7 +508,7 @@ export const WelcomeAuthModal: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 mt-3 rounded-xl bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 font-black text-xs shadow-xl transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+              className="w-full py-3 mt-3 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e6bc3b] hover:from-[#e5c158] hover:to-[#f0ce6b] text-slate-950 font-black text-xs shadow-xl transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
@@ -532,19 +532,19 @@ export const WelcomeAuthModal: React.FC = () => {
               setError(null);
               setResetMessage(null);
             }}
-            className="text-xs text-[#d4af37] hover:underline font-bold mt-4 block mx-auto text-center cursor-pointer"
+            className="text-xs text-amber-300 hover:text-amber-200 font-black hover:underline drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] mt-4 block mx-auto text-center cursor-pointer"
           >
             {mode === 'login' ? "Don't have an account? Create one" : 'Already have an account? Sign In'}
           </button>
         </div>
 
         {/* Pinned Bottom Footer of Left Panel */}
-        <div className="pt-4 mt-6 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400">
+        <div className="pt-4 mt-6 border-t border-white/20 flex items-center justify-between text-xs text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] font-semibold">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <ShieldCheck className="w-4 h-4 text-emerald-400 drop-shadow" />
             <span>Encrypted Dispatch Authentication</span>
           </div>
-          <span className="font-medium text-slate-300">Belize Alerts • Central Farm</span>
+          <span className="font-bold text-amber-200">Belize Alerts • Central Farm</span>
         </div>
       </div>
     </div>
