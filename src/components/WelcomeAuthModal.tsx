@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Shield,
+  ShieldCheck,
   Mail,
   Lock,
   User,
@@ -12,7 +12,7 @@ import {
   Loader2,
   MapPin,
   ArrowRight,
-  Sparkles
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { BELIZE_DISTRICTS } from '../data/belizeGeo';
@@ -27,7 +27,7 @@ export const WelcomeAuthModal: React.FC = () => {
     sendPasswordReset,
   } = useAuth();
 
-  // Default to 'login' for returning users, easily toggled to 'signup'
+  // Mode: 'login' or 'signup'
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -39,7 +39,7 @@ export const WelcomeAuthModal: React.FC = () => {
   const [district, setDistrict] = useState<string>('Belize');
   const [phone, setPhone] = useState('');
 
-  // States
+  // Submission States
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +49,7 @@ export const WelcomeAuthModal: React.FC = () => {
 
   const handleGoogleAuth = async () => {
     setError(null);
+    setResetMessage(null);
     setIsGoogleLoading(true);
     try {
       await signInWithGoogle();
@@ -62,7 +63,7 @@ export const WelcomeAuthModal: React.FC = () => {
 
   const handlePasswordReset = async () => {
     if (!email.trim()) {
-      setError('Please enter your email address in the field above to receive a password reset link.');
+      setError('Please enter your email address in the field below to receive a password reset link.');
       return;
     }
     setError(null);
@@ -149,7 +150,7 @@ export const WelcomeAuthModal: React.FC = () => {
       return;
     }
     if (!phone.trim()) {
-      setError('Please enter your contact phone number for emergency notifications.');
+      setError('Please enter your contact phone number.');
       return;
     }
 
@@ -198,31 +199,69 @@ export const WelcomeAuthModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-md bg-[#0b1220] rounded-2xl shadow-2xl border border-[#1e2e4a] text-white overflow-hidden my-auto flex flex-col">
-        {/* Top Header Card */}
-        <div className="px-5 pt-6 pb-4 bg-gradient-to-b from-[#131f36] to-[#0b1220] border-b border-[#1e2e4a] text-center relative">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-[#1e030a] to-[#380714] border-2 border-[#d4af37] p-1 flex items-center justify-center shadow-xl">
-            <img
-              src="/assets/aistudio/image_ff7e619e.png"
-              alt="Belize Alerts"
-              className="w-full h-full object-cover rounded-xl"
-            />
+    <div
+      className="fixed inset-0 z-50 flex min-h-screen w-full overflow-hidden bg-cover bg-center bg-no-repeat animate-in fade-in duration-300"
+      style={{
+        backgroundImage: "url('/assets/aistudio/Screenshot_2026-11-05_at_03.49.40_6baf66c6.png')",
+      }}
+    >
+      {/* Background Dark Wash Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/35 pointer-events-none" />
+
+      {/* Main Full-Height Left Sidebar Panel */}
+      <div className="relative z-10 w-full max-w-[490px] sm:max-w-[470px] md:max-w-[490px] lg:max-w-[510px] h-full min-h-screen overflow-y-auto bg-black/75 backdrop-blur-xl border-r border-white/10 p-6 sm:p-8 flex flex-col justify-between shadow-2xl text-white">
+        
+        {/* Top Header Section */}
+        <div>
+          {/* Close / Dismiss Button */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <img
+                src="/assets/aistudio/image_ff7e619e.png"
+                alt="Belize Alerts Logo"
+                className="w-12 h-12 rounded-2xl object-cover bg-black/40 p-0.5 border border-[#d4af37] shadow-xl shrink-0"
+              />
+              <div className="text-left leading-tight">
+                <h1 className="font-black text-lg sm:text-xl text-white tracking-wider leading-none">
+                  BELIZE ALERTS
+                </h1>
+                <p className="text-[11px] font-bold text-[#d4af37] tracking-[0.18em] uppercase mt-1">
+                  BY ZAIN DUEHENEY
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAuthGreetingModal(false)}
+              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              title="Close and return to dashboard"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          <h2 className="text-lg font-black text-white tracking-wide mt-3 flex items-center justify-center gap-1.5">
-            <span>Belize Alerts</span>
-            <span className="text-[10px] font-semibold text-[#f3c853] px-2 py-0.5 rounded-full bg-[#1e030a] border border-[#d4af37]/60">
-              Official
-            </span>
-          </h2>
-
-          <p className="text-xs text-slate-300 mt-0.5">
-            National Emergency Management & Public Safety Network
+          <p className="text-[11px] text-slate-300 font-medium">
+            National Emergency Operations & Disaster Risk Reduction Platform
           </p>
 
-          {/* Mode Switcher Segmented Tabs */}
-          <div className="mt-4 grid grid-cols-2 p-1 rounded-xl bg-[#070c17] border border-[#1e2e4a]">
+          {/* Eyebrow & Title */}
+          <div className="mt-6">
+            <span className="text-[10px] font-black tracking-widest text-[#d4af37] uppercase block">
+              {mode === 'login' ? 'CENTRAL DISPATCH AUTHENTICATION' : 'CENTRAL DISPATCH REGISTRATION'}
+            </span>
+            <h2 className="font-serif text-2xl sm:text-3xl font-black text-white mt-1">
+              {mode === 'login' ? 'Sign In to Portal' : 'Create Portal Account'}
+            </h2>
+            <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+              {mode === 'login'
+                ? 'Please sign in using your verified email address to access the emergency operations dashboard.'
+                : 'Register your account to access official incident dispatch, emergency advisories, and responder alerts.'}
+            </p>
+          </div>
+
+          {/* Segmented Pill Switcher (Sign In / Create Account) */}
+          <div className="mt-5 grid grid-cols-2 p-1 rounded-full bg-black/60 border border-white/15">
             <button
               type="button"
               onClick={() => {
@@ -230,14 +269,13 @@ export const WelcomeAuthModal: React.FC = () => {
                 setError(null);
                 setResetMessage(null);
               }}
-              className={`py-2 text-xs font-black rounded-lg transition flex items-center justify-center gap-1.5 ${
+              className={`py-2 text-xs font-black rounded-full transition ${
                 mode === 'login'
-                  ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#d4af37] text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:text-white'
               }`}
             >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Log In</span>
+              Sign In
             </button>
 
             <button
@@ -247,26 +285,22 @@ export const WelcomeAuthModal: React.FC = () => {
                 setError(null);
                 setResetMessage(null);
               }}
-              className={`py-2 text-xs font-black rounded-lg transition flex items-center justify-center gap-1.5 ${
+              className={`py-2 text-xs font-black rounded-full transition ${
                 mode === 'signup'
-                  ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#d4af37] text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:text-white'
               }`}
             >
-              <User className="w-3.5 h-3.5" />
-              <span>Create Account</span>
+              Create Account
             </button>
           </div>
-        </div>
 
-        {/* Modal Form Body */}
-        <div className="p-5 space-y-4 flex-1">
-          {/* Fast Google One-Click Login */}
+          {/* Google One-Click Button */}
           <button
             type="button"
             onClick={handleGoogleAuth}
             disabled={isGoogleLoading || isSubmitting}
-            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs shadow-md transition disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-full bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs shadow-md transition disabled:opacity-50 mt-4 cursor-pointer"
           >
             {isGoogleLoading ? (
               <Loader2 className="w-4 h-4 animate-spin text-slate-700" />
@@ -290,21 +324,22 @@ export const WelcomeAuthModal: React.FC = () => {
                 />
               </svg>
             )}
-            <span>{mode === 'login' ? 'Continue with Google' : 'Sign Up with Google'}</span>
+            <span>Continue with Google Sign-In</span>
           </button>
 
           {/* Divider */}
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-[#1e2e4a]"></div>
-            <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Or continue with email
+          <div className="relative my-4 text-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/15" />
+            </div>
+            <span className="relative px-3 py-0.5 bg-[#161a22] text-[9px] font-black uppercase tracking-wider text-slate-300 rounded-full border border-white/10">
+              OR WITH EMAIL ADDRESS
             </span>
-            <div className="flex-grow border-t border-[#1e2e4a]"></div>
           </div>
 
-          {/* Error Message Box */}
+          {/* Feedback Messages */}
           {error && (
-            <div className="p-3 bg-red-950/80 border border-red-500/80 rounded-xl text-xs text-red-100 flex items-start gap-2 shadow-inner animate-in fade-in">
+            <div className="mb-3 p-3 bg-red-950/80 border border-red-500/70 rounded-xl text-xs text-red-100 flex items-start gap-2 shadow-inner">
               <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
               <div className="flex-1 space-y-1">
                 <p className="leading-relaxed font-medium">{error}</p>
@@ -325,60 +360,49 @@ export const WelcomeAuthModal: React.FC = () => {
             </div>
           )}
 
-          {/* Password Reset Sent Toast */}
           {resetMessage && (
-            <div className="p-3 bg-emerald-950/80 border border-emerald-500/60 rounded-xl text-xs text-emerald-200 flex items-start gap-2">
+            <div className="mb-3 p-3 bg-emerald-950/80 border border-emerald-500/60 rounded-xl text-xs text-emerald-200 flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <span>{resetMessage}</span>
             </div>
           )}
 
-          {/* Single Account Notice on Sign Up */}
-          {mode === 'signup' && (
-            <div className="p-2.5 bg-[#0e182a] border border-blue-500/30 rounded-xl text-[11px] text-blue-200 flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>
-                <strong>Single Account Policy:</strong> Once registered, you will log in with this email on future visits.
-              </span>
-            </div>
-          )}
-
-          {/* Main Form */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3">
-            {/* Sign Up Fields: Name, Phone, District */}
+            {/* If Sign Up mode: First & Last Name */}
             {mode === 'signup' && (
               <>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                      First Name <span className="text-red-400">*</span>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300 mb-1">
+                      First Name *
                     </label>
-                    <div className="relative">
-                      <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
+                      <User className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
                       <input
                         type="text"
                         required
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         placeholder="John"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                        className="w-full pl-9 pr-3 py-2 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                      Last Name <span className="text-red-400">*</span>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300 mb-1">
+                      Last Name *
                     </label>
-                    <div className="relative">
-                      <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
+                      <User className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
                       <input
                         type="text"
                         required
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Smith"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                        className="w-full pl-9 pr-3 py-2 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -387,35 +411,35 @@ export const WelcomeAuthModal: React.FC = () => {
                 {/* Contact Phone & District */}
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                      Contact Phone <span className="text-red-400">*</span>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300 mb-1">
+                      Phone Number *
                     </label>
-                    <div className="relative">
-                      <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
+                      <Phone className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
                       <input
                         type="tel"
                         required
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="610-1234"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                        className="w-full pl-9 pr-3 py-2 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                      District <span className="text-red-400">*</span>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300 mb-1">
+                      District *
                     </label>
-                    <div className="relative">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
+                      <MapPin className="w-4 h-4 text-[#d4af37] absolute left-3 top-2.5" />
                       <select
                         value={district}
                         onChange={(e) => setDistrict(e.target.value)}
-                        className="w-full pl-9 pr-2 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-white text-xs focus:outline-none focus:border-amber-400"
+                        className="w-full pl-9 pr-2 py-2 bg-transparent text-xs text-white focus:outline-none"
                       >
                         {BELIZE_DISTRICTS.map((d) => (
-                          <option key={d.id} value={d.id}>
+                          <option key={d.id} value={d.id} className="bg-[#121c2e] text-white">
                             {d.name}
                           </option>
                         ))}
@@ -426,114 +450,101 @@ export const WelcomeAuthModal: React.FC = () => {
               </>
             )}
 
-            {/* Email Address */}
+            {/* Email Address Field */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                Email Address <span className="text-red-400">*</span>
+              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300 mb-1">
+                EMAIL ADDRESS *
               </label>
-              <div className="relative">
-                <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
+                <Mail className="w-4 h-4 text-[#d4af37] absolute left-3.5 top-3" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                  placeholder="name@example.com or personal email"
+                  className="w-full pl-10 pr-3 py-2.5 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
                 />
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password Field */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-[11px] font-bold text-slate-300">
-                  Password <span className="text-red-400">*</span>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-300">
+                  PASSWORD *
                 </label>
                 {mode === 'login' && (
                   <button
                     type="button"
                     onClick={handlePasswordReset}
-                    className="text-[10px] text-amber-400 hover:text-amber-300 font-bold hover:underline"
+                    className="text-[10px] text-[#d4af37] hover:text-amber-300 font-bold hover:underline"
                   >
                     Forgot Password?
                   </button>
                 )}
               </div>
-              <div className="relative">
-                <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <div className="relative rounded-xl bg-black/50 border border-white/20 focus-within:border-[#d4af37] transition">
+                <Lock className="w-4 h-4 text-[#d4af37] absolute left-3.5 top-3" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-10 py-2 rounded-xl bg-[#121c2e] border border-[#233555] text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                  placeholder="Enter your password"
+                  className="w-full pl-10 pr-10 py-2.5 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                  className="absolute right-3.5 top-3 text-slate-400 hover:text-white transition"
                 >
-                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Action Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 mt-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 mt-3 rounded-xl bg-[#d4af37] hover:bg-[#e5c158] text-slate-950 font-black text-xs shadow-xl transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
                   <span>{mode === 'login' ? 'Signing In...' : 'Registering Account...'}</span>
                 </>
               ) : (
                 <>
-                  <Shield className="w-4 h-4" />
-                  <span>{mode === 'login' ? 'Sign In to Belize Alerts' : 'Complete Registration & Sign In'}</span>
+                  <ArrowRight className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+                  <span>{mode === 'login' ? 'Sign In to Portal' : 'Register & Enter Portal'}</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Footer Mode Switch Link */}
-          <div className="pt-2 text-center text-xs text-slate-400">
-            {mode === 'login' ? (
-              <p>
-                First time using Belize Alerts?{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('signup');
-                    setError(null);
-                    setResetMessage(null);
-                  }}
-                  className="text-amber-400 hover:underline font-bold"
-                >
-                  Create an Account
-                </button>
-              </p>
-            ) : (
-              <p>
-                Already registered your account?{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('login');
-                    setError(null);
-                    setResetMessage(null);
-                  }}
-                  className="text-amber-400 hover:underline font-bold"
-                >
-                  Log In Here
-                </button>
-              </p>
-            )}
+          {/* Switcher text link */}
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === 'login' ? 'signup' : 'login');
+              setError(null);
+              setResetMessage(null);
+            }}
+            className="text-xs text-[#d4af37] hover:underline font-bold mt-4 block mx-auto text-center cursor-pointer"
+          >
+            {mode === 'login' ? "Don't have an account? Create one" : 'Already have an account? Sign In'}
+          </button>
+        </div>
+
+        {/* Pinned Bottom Footer of Left Panel */}
+        <div className="pt-4 mt-6 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Encrypted Dispatch Authentication</span>
           </div>
+          <span className="font-medium text-slate-300">Belize Alerts • Central Farm</span>
         </div>
       </div>
     </div>

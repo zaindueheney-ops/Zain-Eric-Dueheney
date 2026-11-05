@@ -129,16 +129,23 @@ export const CommandTopBar: React.FC<CommandTopBarProps> = ({
             <Menu className="w-5 h-5" />
           </button>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-black text-sm sm:text-base text-white tracking-tight flex items-center gap-2 leading-none">
-                <span>BELIZE ALERTS</span>
-                <span className="hidden sm:inline-block text-[#f3c853]">| COMMAND CENTRE</span>
-              </h1>
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/assets/aistudio/image_ff7e619e.png"
+              alt="Belize Alerts Logo"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover border border-[#d4af37]/80 shadow shrink-0"
+            />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-black text-sm sm:text-base text-white tracking-tight flex items-center gap-1.5 leading-none">
+                  <span>BELIZE ALERTS</span>
+                  <span className="text-[#f3c853] font-bold text-xs sm:text-sm">by Zain Dueheney</span>
+                </h1>
+              </div>
+              <p className="text-[10px] text-slate-400 font-semibold tracking-wide hidden sm:block mt-0.5">
+                National Emergency Information & Response Operations Platform
+              </p>
             </div>
-            <p className="text-[10px] text-slate-400 font-semibold tracking-wide hidden sm:block mt-0.5">
-              National Emergency Information & Response Operations Platform • Zain Dueheney
-            </p>
           </div>
         </div>
 

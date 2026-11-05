@@ -237,10 +237,10 @@ export const CommandSidebar: React.FC = () => {
             {!sidebarCollapsed && (
               <div className="leading-tight truncate">
                 <span className="font-black text-sm tracking-wide text-white block">
-                  BELIZE <span className="text-[#f3c853]">EOC</span>
+                  BELIZE <span className="text-[#f3c853]">ALERTS</span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-semibold block truncate">
-                  Command Centre
+                <span className="text-[10px] text-[#f3c853] font-semibold block truncate">
+                  by Zain Dueheney
                 </span>
               </div>
             )}
