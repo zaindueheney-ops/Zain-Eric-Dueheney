@@ -57,8 +57,8 @@ export const NmsChiefMeteorologistModal: React.FC<NmsChiefMeteorologistModalProp
 
   if (!isOpen) return null;
 
-  const displayDate = generalForecast.forecast_date || '2026-11-04';
-  const displayCategory = generalForecast.forecast_category || 'Morning Forecast';
+  const displayDate = generalForecast.forecast_date || '2026-11-09';
+  const displayCategory = generalForecast.forecast_category || 'Afternoon Forecast';
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">

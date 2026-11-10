@@ -71,21 +71,21 @@ const LOCAL_STORAGE_ADVISORIES_KEY = 'belize_alerts_official_advisories';
 
 export const DEFAULT_SAMPLE_ADVISORY: OfficialAdvisory = {
   id: 'official_belize_advisory_initial',
-  title: 'National Meteorological Service of Belize: General Weather Forecast & Outlook',
+  title: 'National Meteorological Service of Belize: General Weather Forecast & Outlook (09 Nov 2026)',
   urgencyLevel: 'advisory',
   district: 'all',
   summary:
-    'MAINLY FAIR WEATHER CONDITIONS PREVAIL OVER THE AREA.\n\n24-Hour Forecast: SUNNY WITH A FEW CLOUDY SPELLS TODAY AND PARTLY CLOUDY SKIES TONIGHT. SHOWERS WILL BE GENERALLY ISOLATED.\n\nOutlook: (THURSDAY & THURSDAY NIGHT)- IS FOR FAIR AND MOSTLY DRY CONDITIONS. SHOWERS, IF ANY, WILL BE ISOLATED.\n\nOfficial Source: National Meteorological Service of Belize (https://nms.gov.bz/forecast/general-weather-forecast/).',
+    'A LIGHT NORTHEASTERLY AIRFLOW PREVAILS...\n\n24-Hour Forecast: SUNNY SKIES WITH CLOUDY SPELLS THIS AFTERNOON AND ISOLATED SHOWERS, EXCEPT OVER THE SOUTH WHERE A FEW SHOWERS ARE EXPECTED TO CONTINUE AND ISOLATED THUNDERSTORMS ARE POSSIBLE. CLOUDY AT TIMES TONIGHT AND TOMORROW MORNING AS A FEW SHOWERS AND ISOLATED THUNDERSTORMS ARE LIKELY TO OCCUR MAINLY OVER COASTAL AREAS.\n\nOutlook: SHOWERS AND THUNDERSTORMS ARE EXPECTED TO INCREASE OVER INLAND AREAS ON TUESDAY AFTERNOON AND EVENING, THEN A FEW SHOWERS AND ISOLATED THUNDERSTORMS ARE POSSIBLE MOSTLY OVER THE SOUTH AND COAST ON TUESDAY NIGHT AND WEDNESDAY MORNING.\n\nOfficial Source: National Meteorological Service of Belize (https://nms.gov.bz/forecast/general-weather-forecast/).',
   safetyInstructions:
-    'Small crafts and marine vessels should observe slight sea states (1-3 ft waves, 5-10 kts wind). Motorists are advised to stay attentive during isolated coastal showers.',
+    'Small crafts and marine vessels should observe slight sea states (1-3 ft waves, 5-10 kts wind). Motorists are advised to exercise vigilance during isolated coastal showers and thunderstorms over southern districts.',
   issuingAuthority: 'National Meteorological Service of Belize (NMS) • Chief Meteorologist Ronald Gordon',
   publicationUrl: 'https://nms.gov.bz/forecast/general-weather-forecast/',
-  fileUrl: 'https://wimp3.nms.gov.bz/media/forecast/general/doc/General_Forecast_2026-11-04_0600_AM_NMS_BZ.pdf',
-  fileName: 'General_Forecast_2026-11-04_0600_AM_NMS_BZ.pdf',
+  fileUrl: 'https://wimp3.nms.gov.bz/media/forecast/general/doc/General_Forecast_2026-11-09_1200_PM_NMS_BZ.pdf',
+  fileName: 'General_Forecast_2026-11-09_1200_PM_NMS_BZ.pdf',
   fileType: 'pdf',
-  publishedBy: 'Mr. Ronald Gordon, Chief Meteorologist (NMS • https://nms.gov.bz/)',
+  publishedBy: 'Forecaster Michelle Augustine under Chief Meteorologist Ronald Gordon (NMS • https://nms.gov.bz/)',
   publisherEmail: 'chief@nms.gov.bz',
-  publishedAt: '2026-11-04T06:00:00.000Z',
+  publishedAt: '2026-11-09T12:00:00.000Z',
   active: true,
   channels: {
     inApp: true,
@@ -237,6 +237,9 @@ function getCachedAdvisories(): OfficialAdvisory[] {
   if (!deletedIds.has(OFFICIAL_SOE_ADVISORY.id)) {
     map.set(OFFICIAL_SOE_ADVISORY.id, OFFICIAL_SOE_ADVISORY);
   }
+  if (!deletedIds.has(DEFAULT_SAMPLE_ADVISORY.id)) {
+    map.set(DEFAULT_SAMPLE_ADVISORY.id, DEFAULT_SAMPLE_ADVISORY);
+  }
 
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_ADVISORIES_KEY);
@@ -245,14 +248,22 @@ function getCachedAdvisories(): OfficialAdvisory[] {
       if (Array.isArray(parsed) && parsed.length > 0) {
         parsed.forEach((a: OfficialAdvisory) => {
           if (a && a.id && !deletedIds.has(a.id)) {
-            const att = resolveAdvisoryAttachment(a);
+            let itemToUse = a;
+            // Always ensure the official weather advisory reflects the latest 09 Nov 2026 forecast
+            if (
+              a.id === DEFAULT_SAMPLE_ADVISORY.id &&
+              new Date(a.publishedAt).getTime() < new Date(DEFAULT_SAMPLE_ADVISORY.publishedAt).getTime()
+            ) {
+              itemToUse = DEFAULT_SAMPLE_ADVISORY;
+            }
+            const att = resolveAdvisoryAttachment(itemToUse);
             const enriched: OfficialAdvisory = {
-              ...a,
+              ...itemToUse,
               ...(att.fileUrl ? { fileUrl: att.fileUrl } : {}),
               ...(att.fileType ? { fileType: att.fileType } : {}),
               ...(att.fileName ? { fileName: att.fileName } : {}),
             };
-            map.set(a.id, enriched);
+            map.set(itemToUse.id, enriched);
           }
         });
       }
@@ -318,8 +329,15 @@ export const AdvisoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           });
 
-          if (!deletedIds.has(DEFAULT_SAMPLE_ADVISORY.id) && mergedMap.size === 0) {
-            mergedMap.set(DEFAULT_SAMPLE_ADVISORY.id, DEFAULT_SAMPLE_ADVISORY);
+          // Ensure baseline official bulletins are always present and up-to-date if not deleted
+          if (!deletedIds.has(DEFAULT_SAMPLE_ADVISORY.id)) {
+            const existing = mergedMap.get(DEFAULT_SAMPLE_ADVISORY.id);
+            if (!existing || new Date(existing.publishedAt).getTime() < new Date(DEFAULT_SAMPLE_ADVISORY.publishedAt).getTime()) {
+              mergedMap.set(DEFAULT_SAMPLE_ADVISORY.id, DEFAULT_SAMPLE_ADVISORY);
+            }
+          }
+          if (!deletedIds.has(OFFICIAL_SOE_ADVISORY.id) && !mergedMap.has(OFFICIAL_SOE_ADVISORY.id)) {
+            mergedMap.set(OFFICIAL_SOE_ADVISORY.id, OFFICIAL_SOE_ADVISORY);
           }
 
           const merged = Array.from(mergedMap.values()).sort(
