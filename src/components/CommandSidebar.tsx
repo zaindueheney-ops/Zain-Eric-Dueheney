@@ -21,12 +21,14 @@ import {
   Activity,
   AlertCircle,
   Award,
-  Flame
+  Flame,
+  Accessibility
 } from 'lucide-react';
 import { useCommand } from '../context/CommandContext';
 import { useAuth, isAuthorizedAdminEmail } from '../context/AuthContext';
 import { useIncidents } from '../context/IncidentContext';
 import { useAdvisories } from '../context/AdvisoryContext';
+import { useDisabilityRegistry } from '../context/DisabilityContext';
 import { CommandViewTab } from '../types';
 
 interface MenuItem {
@@ -50,9 +52,10 @@ export const CommandSidebar: React.FC = () => {
     responseTeams,
   } = useCommand();
 
-  const { user, profile, isAdmin } = useAuth();
+  const { user, profile, isAdmin, isResponder } = useAuth();
   const { pendingIncidents, approvedIncidents } = useIncidents();
   const { advisories } = useAdvisories();
+  const { registrations: disabilityRegistrations } = useDisabilityRegistry();
 
   const isSuperAdmin = Boolean(
     isAuthorizedAdminEmail(user?.email) || profile?.adminRole === 'super_admin'
@@ -100,6 +103,15 @@ export const CommandSidebar: React.FC = () => {
       icon: MapPin,
       badge: activeIncidentsCount > 0 ? activeIncidentsCount : undefined,
       badgeColor: 'bg-red-600 text-white',
+      rolesAllowed: ['super_admin', 'national_admin', 'district_admin', 'dispatcher', 'school_admin', 'citizen'],
+    },
+    {
+      id: 'disability_registry',
+      label: 'Disability Registry',
+      shortLabel: 'Disability',
+      icon: Accessibility,
+      badge: (isAdmin || isResponder) && disabilityRegistrations.length > 0 ? disabilityRegistrations.length : undefined,
+      badgeColor: 'bg-sky-600 text-white',
       rolesAllowed: ['super_admin', 'national_admin', 'district_admin', 'dispatcher', 'school_admin', 'citizen'],
     },
     {

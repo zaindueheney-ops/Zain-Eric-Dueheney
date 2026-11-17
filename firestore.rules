@@ -178,6 +178,58 @@ service cloud.firestore {
         (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
     }
 
+    // --- Disability Registration Validation ---
+    function isValidDisabilityType(t) {
+      return t in ['mobility', 'visual', 'hearing', 'cognitive', 'medical_dependent', 'speech', 'elderly_frail', 'multiple', 'other'];
+    }
+
+    function isValidAssistancePriority(p) {
+      return p in ['critical_life_support', 'high_mobility_assist', 'moderate_support', 'standard'];
+    }
+
+    function isValidDisabilityVerificationStatus(s) {
+      return s in ['pending', 'verified', 'needs_update'];
+    }
+
+    function isValidDisabilityRegistration(data) {
+      return data.keys().hasAll([
+          'userId', 'fullName', 'phone', 'disabilityType', 'disabilityDetails',
+          'assistancePriority', 'requiresAccessibleTransport', 'requiresMedicalPower',
+          'district', 'addressDescription', 'latitude', 'longitude',
+          'verificationStatus', 'registeredByEmail'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'userId', 'fullName', 'phone', 'emergencyContactName', 'emergencyContactPhone',
+          'disabilityType', 'disabilityDetails', 'assistancePriority',
+          'requiresAccessibleTransport', 'requiresMedicalPower', 'householdSize',
+          'district', 'addressDescription', 'latitude', 'longitude',
+          'houseImageUrl', 'verificationStatus', 'adminNotes', 'registeredByEmail',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+        data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 120 &&
+        data.phone is string && data.phone.size() > 0 && data.phone.size() <= 40 &&
+        isValidDisabilityType(data.disabilityType) &&
+        data.disabilityDetails is string && data.disabilityDetails.size() > 0 && data.disabilityDetails.size() <= 1500 &&
+        isValidAssistancePriority(data.assistancePriority) &&
+        data.requiresAccessibleTransport is bool &&
+        data.requiresMedicalPower is bool &&
+        isValidBelizeDistrict(data.district) &&
+        data.addressDescription is string && data.addressDescription.size() > 0 && data.addressDescription.size() <= 300 &&
+        data.latitude is number && data.latitude >= 14.5 && data.latitude <= 20.0 &&
+        data.longitude is number && data.longitude >= -91.0 && data.longitude <= -86.5 &&
+        isValidDisabilityVerificationStatus(data.verificationStatus) &&
+        data.registeredByEmail is string && data.registeredByEmail.size() > 0 && data.registeredByEmail.size() <= 120 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+        (!('emergencyContactName' in data) || (data.emergencyContactName is string && data.emergencyContactName.size() <= 120)) &&
+        (!('emergencyContactPhone' in data) || (data.emergencyContactPhone is string && data.emergencyContactPhone.size() <= 40)) &&
+        (!('householdSize' in data) || (data.householdSize is number && data.householdSize >= 1 && data.householdSize <= 50)) &&
+        (!('houseImageUrl' in data) || (data.houseImageUrl is string && data.houseImageUrl.size() <= 500000)) &&
+        (!('adminNotes' in data) || (data.adminNotes is string && data.adminNotes.size() <= 1000)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 60)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 60));
+    }
+
     // ==========================================
     // Collections
     // ==========================================
@@ -334,6 +386,39 @@ service cloud.firestore {
     // Subscriber Notification Preferences
     match /subscribers/{userId} {
       allow read, write: if isSignedIn() && (isOwner(userId) || isAdmin());
+    }
+
+    // Disability Registry & Vulnerable Household Mapping
+    match /disability_registrations/{registrationId} {
+      // Strictly protect sensitive medical and home-location PII:
+      // Only the record owner, Admins, or Authorized Responders/Dispatchers can view
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isResponderOrDispatcher());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isResponderOrDispatcher());
+
+      allow create: if isSignedIn() && isValidId(registrationId) &&
+        isValidDisabilityRegistration(incoming()) &&
+        (incoming().userId == request.auth.uid || isAdmin()) &&
+        (incoming().verificationStatus == 'pending' || isAdmin());
+
+      allow update: if isSignedIn() && isValidId(registrationId) &&
+        isValidDisabilityRegistration(incoming()) &&
+        incoming().userId == existing().userId &&
+        (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt) && (
+          isAdmin() ||
+          (
+            existing().userId == request.auth.uid &&
+            incoming().verificationStatus == existing().verificationStatus &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'fullName', 'phone', 'emergencyContactName', 'emergencyContactPhone',
+              'disabilityType', 'disabilityDetails', 'assistancePriority',
+              'requiresAccessibleTransport', 'requiresMedicalPower', 'householdSize',
+              'district', 'addressDescription', 'latitude', 'longitude',
+              'houseImageUrl', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
   }
 }

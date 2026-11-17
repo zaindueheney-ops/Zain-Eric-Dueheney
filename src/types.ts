@@ -378,11 +378,57 @@ export interface SubscriberPreferences {
   updatedAt: string;
 }
 
-// --- Sidebar Menu Identifiers (15 operational modules) ---
+// --- Disability Registry & Vulnerable Household Mapping ---
+export type DisabilityType =
+  | 'mobility'
+  | 'visual'
+  | 'hearing'
+  | 'cognitive'
+  | 'medical_dependent'
+  | 'speech'
+  | 'elderly_frail'
+  | 'multiple'
+  | 'other';
+
+export type AssistancePriority =
+  | 'critical_life_support'
+  | 'high_mobility_assist'
+  | 'moderate_support'
+  | 'standard';
+
+export type DisabilityVerificationStatus = 'pending' | 'verified' | 'needs_update';
+
+export interface DisabilityRegistration {
+  id: string;
+  userId: string;
+  fullName: string;
+  phone: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  disabilityType: DisabilityType;
+  disabilityDetails: string;
+  assistancePriority: AssistancePriority;
+  requiresAccessibleTransport: boolean;
+  requiresMedicalPower: boolean;
+  householdSize?: number;
+  district: BelizeDistrict;
+  addressDescription: string;
+  latitude: number;
+  longitude: number;
+  houseImageUrl?: string;
+  verificationStatus: DisabilityVerificationStatus;
+  adminNotes?: string;
+  registeredByEmail: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// --- Sidebar Menu Identifiers (16 operational modules) ---
 export type CommandViewTab =
   | 'command_dashboard'
   | 'our_initiative'
   | 'national_map'
+  | 'disability_registry'
   | 'satellite_fire_monitoring'
   | 'incident_management'
   | 'emergency_alerts'

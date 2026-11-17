@@ -532,6 +532,134 @@
         }
       },
       "required": ["userId", "pushEnabled", "emailEnabled", "district"]
+    },
+    "DisabilityRegistration": {
+      "title": "DisabilityRegistration",
+      "description": "Registered Belize resident with a disability, including house photograph and pinned residence coordinates for emergency response and administration.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "fullName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "emergencyContactName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "emergencyContactPhone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "disabilityType": {
+          "type": "string",
+          "enum": [
+            "mobility",
+            "visual",
+            "hearing",
+            "cognitive",
+            "medical_dependent",
+            "speech",
+            "elderly_frail",
+            "multiple",
+            "other"
+          ]
+        },
+        "disabilityDetails": {
+          "type": "string",
+          "maxLength": 1500
+        },
+        "assistancePriority": {
+          "type": "string",
+          "enum": [
+            "critical_life_support",
+            "high_mobility_assist",
+            "moderate_support",
+            "standard"
+          ]
+        },
+        "requiresAccessibleTransport": {
+          "type": "boolean"
+        },
+        "requiresMedicalPower": {
+          "type": "boolean"
+        },
+        "householdSize": {
+          "type": "number"
+        },
+        "district": {
+          "type": "string",
+          "enum": [
+            "Belize",
+            "Cayo",
+            "Corozal",
+            "Orange Walk",
+            "Stann Creek",
+            "Toledo"
+          ]
+        },
+        "addressDescription": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "houseImageUrl": {
+          "type": "string",
+          "maxLength": 500000
+        },
+        "verificationStatus": {
+          "type": "string",
+          "enum": ["pending", "verified", "needs_update"]
+        },
+        "adminNotes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "registeredByEmail": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "fullName",
+        "phone",
+        "disabilityType",
+        "disabilityDetails",
+        "assistancePriority",
+        "requiresAccessibleTransport",
+        "requiresMedicalPower",
+        "district",
+        "addressDescription",
+        "latitude",
+        "longitude",
+        "verificationStatus",
+        "registeredByEmail"
+      ]
     }
   },
   "firestore": {
@@ -566,6 +694,10 @@
     "/subscribers/{userId}": {
       "schema": "SubscriberPreferences",
       "description": "Emergency alert subscription preferences and consent status."
+    },
+    "/disability_registrations/{registrationId}": {
+      "schema": "DisabilityRegistration",
+      "description": "Disability registry entries with house photos and pinned residence locations across Belize."
     },
     "/response_teams/{teamId}": {
       "description": "Registered first responder strike forces and emergency crews."

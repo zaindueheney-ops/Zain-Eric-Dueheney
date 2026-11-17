@@ -4,6 +4,7 @@ import { IncidentProvider, useIncidents } from './context/IncidentContext';
 import { AdvisoryProvider } from './context/AdvisoryContext';
 import { ChatProvider, useChat } from './context/ChatContext';
 import { CommandProvider, useCommand } from './context/CommandContext';
+import { DisabilityProvider } from './context/DisabilityContext';
 
 import { CommandSidebar } from './components/CommandSidebar';
 import { CommandTopBar } from './components/CommandTopBar';
@@ -12,6 +13,7 @@ import { CommandTopBar } from './components/CommandTopBar';
 import { CommandDashboardView } from './components/views/CommandDashboardView';
 import { OurInitiativeView } from './components/views/OurInitiativeView';
 import { NationalIncidentMapView } from './components/views/NationalIncidentMapView';
+import { DisabilityRegistryView } from './components/views/DisabilityRegistryView';
 import { SatelliteFireMonitoringView } from './components/views/SatelliteFireMonitoringView';
 import { IncidentManagementView } from './components/views/IncidentManagementView';
 import { EmergencyAlertsView } from './components/views/EmergencyAlertsView';
@@ -92,6 +94,8 @@ function MainEmergencyCommandApp() {
             }}
           />
         );
+      case 'disability_registry':
+        return <DisabilityRegistryView />;
       case 'satellite_fire_monitoring':
         return <SatelliteFireMonitoringView />;
       case 'incident_management':
@@ -239,9 +243,11 @@ export default function App() {
       <IncidentProvider>
         <AdvisoryProvider>
           <CommandProvider>
-            <ChatProvider>
-              <MainEmergencyCommandApp />
-            </ChatProvider>
+            <DisabilityProvider>
+              <ChatProvider>
+                <MainEmergencyCommandApp />
+              </ChatProvider>
+            </DisabilityProvider>
           </CommandProvider>
         </AdvisoryProvider>
       </IncidentProvider>

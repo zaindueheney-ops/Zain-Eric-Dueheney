@@ -18,7 +18,8 @@ import {
   Layers,
   CloudRain,
   Award,
-  GraduationCap
+  GraduationCap,
+  Accessibility
 } from 'lucide-react';
 import { useCommand } from '../../context/CommandContext';
 import { useAuth } from '../../context/AuthContext';
@@ -97,6 +98,15 @@ export const CommandDashboardView: React.FC = () => {
             >
               <MapPin className="w-4 h-4 text-[#d4af37]" />
               <span>Open National Map</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('disability_registry')}
+              className="px-3.5 py-2 rounded-xl bg-sky-950/90 hover:bg-sky-900 text-sky-200 hover:text-white border border-sky-500/50 text-xs font-bold transition flex items-center gap-1.5 shadow"
+            >
+              <Accessibility className="w-4 h-4 text-sky-400" />
+              <span>Disability Registry</span>
             </button>
 
             {isAdmin && (
